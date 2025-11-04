@@ -1,0 +1,7 @@
+{
+  "name": "Smart Study Planner & Exam Assistant",
+  "description": "PrepAI is an intelligent, AI-powered study assistant designed to help students prepare for exams efficiently and intelligently. It uses Gemini to analyze study materials and habits — creating a personalized, adaptive learning plan.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
