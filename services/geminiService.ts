@@ -162,9 +162,10 @@ ${langInstruction}`;
         const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model,
             contents: { parts: contentParts },
+            config: { thinkingConfig: { thinkingBudget: 0 } },
         }));
 
-        return response.text;
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating summary:", error);
         throw new Error("Failed to generate summary with Gemini API.");
@@ -199,10 +200,10 @@ export const generateFlashcards = async (
         const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model,
             contents: { parts: contentParts },
-            config: { responseMimeType: 'application/json', responseSchema: schema },
+            config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
         }));
 
-        const result = JSON.parse(response.text);
+        const result = JSON.parse(response.text.trim());
         return result.flashcards;
 
     } catch (error) {
@@ -250,10 +251,10 @@ Your output must be a single JSON object that strictly adheres to the provided s
         const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model,
             contents: { parts: contentParts },
-            config: { responseMimeType: 'application/json', responseSchema: schema },
+            config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
         }));
 
-        const result = JSON.parse(response.text);
+        const result = JSON.parse(response.text.trim());
         return result;
 
     } catch (error) {
@@ -310,11 +311,12 @@ ${material || "No text material provided. Rely on attached files and general kno
         // @ts-ignore - The `role` in `ChatMessage` matches the expected 'user'|'model'.
         contents: historyForApi,
         config: {
-            systemInstruction
+            systemInstruction,
+            thinkingConfig: { thinkingBudget: 0 },
         },
     }));
 
-    return response.text;
+    return response.text.trim();
 
   } catch (error) {
     console.error("Error getting chat response:", error);
@@ -337,6 +339,7 @@ export const generateSpeech = async (text: string): Promise<string> => {
             prebuiltVoiceConfig: { voiceName: voice },
           },
         },
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }));
 
@@ -358,8 +361,12 @@ export const generateQuizFeedback = async (language: 'en' | 'fr', incorrectQuest
         const langInstruction = getLanguageInstruction(language);
         const prompt = `A student took a quiz and answered the following questions incorrectly. Provide 2-3 concise, actionable learning tips to help them understand the core concepts they're struggling with. Use markdown for formatting. ${langInstruction}\n\nIncorrect Questions:\n${incorrectQuestions.map(q => `- ${q.question} (Correct Answer: ${q.correctAnswer.join(', ')})`).join('\n')}`;
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({ model, contents: prompt }));
-        return response.text;
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({ 
+          model, 
+          contents: prompt,
+          config: { thinkingConfig: { thinkingBudget: 0 } },
+        }));
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating quiz feedback:", error);
         return "Could not generate feedback at this time.";
@@ -431,10 +438,10 @@ export const analyzeTimetable = async (
     const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
       model,
       contents: { parts: contentParts },
-      config: { responseMimeType: 'application/json', responseSchema: timetableAnalysisSchema },
+      config: { responseMimeType: 'application/json', responseSchema: timetableAnalysisSchema, thinkingConfig: { thinkingBudget: 0 } },
     }));
 
-    const result = JSON.parse(response.text) as TimetableAnalysis;
+    const result = JSON.parse(response.text.trim()) as TimetableAnalysis;
     
     result.schedule = result.schedule.map(item => ({...item, id: crypto.randomUUID() }));
     result.studyWindows = result.studyWindows.map(item => ({...item, id: crypto.randomUUID() }));
@@ -513,11 +520,20 @@ Your output must be a single JSON object that strictly adheres to the provided s
         const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model,
             contents: prompt,
-            config: { responseMimeType: 'application/json', responseSchema: schema },
+            config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
         }));
 
-        const result = JSON.parse(response.text);
-        return result;
+        const result = JSON.parse(response.text.trim());
+        // Trim individual string properties within the result
+        return {
+            ...result,
+            dailyReport: result.dailyReport.trim(),
+            learningTip: result.learningTip.trim(),
+            reminders: result.reminders.map((r: any) => ({
+                subjectName: r.subjectName.trim(),
+                text: r.text.trim(),
+            })),
+        };
 
     } catch (error) {
         console.error("Error generating dashboard insights:", error);
@@ -541,8 +557,12 @@ export const generateQuizStrategyTip = async (score: number, language: 'en' | 'f
 
         const prompt = `You are an expert learning coach. Based on a student's recent quiz performance, provide one concise, encouraging, and actionable study strategy tip. The tip should introduce a specific, well-known learning method (like the Feynman technique, spaced repetition, active recall, mind mapping, etc.) relevant to their performance level. Keep the tip to 2-3 sentences. ${userPerformanceContext} ${langInstruction}`;
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({ model, contents: prompt }));
-        return response.text;
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({ 
+          model, 
+          contents: prompt,
+          config: { thinkingConfig: { thinkingBudget: 0 } },
+        }));
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating quiz strategy tip:", error);
         return language === 'fr' ? "Impossible de générer un conseil pour le moment." : "Could not generate a tip at this time.";
@@ -575,6 +595,7 @@ export const editImage = async (
       },
       config: {
         responseModalities: [Modality.IMAGE],
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }));
 
