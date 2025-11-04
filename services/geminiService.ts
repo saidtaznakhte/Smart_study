@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from '@google/genai';
 import { Flashcard, QuizQuestion, ChatMessage, SubjectDifficulty, TimetableAnalysis, QuizType, Subject, ProgressEvent, GenerationAmount, DashboardInsights } from '../types';
 
@@ -105,29 +106,31 @@ export const generateSummary = async (
 
         const prompt = `Analyze the provided study material and generate a comprehensive, well-structured study guide. The output must be meticulously organized to resemble a high-quality educational document, making it easy for a student to understand and learn from.
 
-**Formatting and Structure Requirements (Strictly Enforced):**
+**Formatting and Structure Requirements (Strictly Enforced for Visual Readability):**
+The goal is to create a document that is not only informative but also *visually easy to read and scan*. To achieve this, strictly adhere to the following:
 
 1.  **Overall Title:**
     *   Begin with a single, clear, and descriptive main title for the entire study guide.
     *   Use a Markdown H1 heading (e.g., \`# [Main Title of the Subject]\`).
 
-2.  **Logical Sections:**
-    *   Break down the content into logical, distinct sections.
+2.  **Logical Sections and Hierarchy:**
+    *   Break down the content into logical, distinct sections using headings to create a clear hierarchy.
     *   Use Markdown H2 headings for major sections (e.g., \`## Key Concepts\`).
-    *   If necessary, use H3 headings for subsections (e.g., \`### Photosynthesis Process\`).
+    *   Use H3 headings for subsections (e.g., \`### Photosynthesis Process\`).
 
-3.  **Content within Sections:**
+3.  **Content Presentation:**
     *   **Paragraphs:** Write clear and concise paragraphs to explain concepts.
     *   **Lists:** Use bullet points (\`*\` or \`-\`) for lists of items, facts, or key takeaways. Use numbered lists (\`1.\`, \`2.\`) for sequential steps or processes.
-    *   **Emphasis:** Use bold text (\`**important term**\`) to highlight essential keywords, definitions, and concepts. Do not overuse it.
+    *   **Highlights and Emphasis:** Use **bold text** (\`**important term**\`) to highlight essential keywords, definitions, and main ideas so they stand out visually. Do not overuse bolding; apply it strategically to key information.
 
-4.  **Spacing and Readability (Crucial):**
-    *   **ALWAYS** place a blank line between all distinct elements. This includes:
+4.  **Spacing and Indentation (Crucial for Scannability):**
+    *   **ALWAYS** place a blank line between all distinct Markdown elements. This includes:
         *   Between a heading and the paragraph that follows it.
         *   Between paragraphs.
         *   Between a paragraph and a list.
         *   Between list items if they are multi-line.
-    *   This spacing is critical for creating a clean, professional, and easy-to-read document.
+    *   Ensure lists (bulleted and numbered) are properly indented by Markdown for clear hierarchy.
+    *   This meticulous use of spacing and indentation is critical for creating a clean, professional, and easy-to-read document where main ideas are immediately apparent.
 
 **Example Structure:**
 
@@ -177,13 +180,15 @@ export const generateFlashcards = async (
   language: 'en' | 'fr',
   amount: GenerationAmount,
   focus: string,
-  files?: { mimeType: string; data: string }[]
+  files?: { mimeType: string; data: string }[],
+  regenerationHint?: string
 ): Promise<Omit<Flashcard, 'id' | 'easinessFactor' | 'interval' | 'repetitions' | 'dueDate'>[]> => {
     try {
         const model = 'gemini-2.5-flash';
         const langInstruction = getLanguageInstruction(language);
         const quantities = getAmountMapping(amount);
         const focusInstruction = focus ? `Pay special attention to the following topics or concepts: "${focus}".` : '';
+        const regenerationInstruction = regenerationHint ? ` (Internal generation hint: ${regenerationHint})` : '';
 
         const schema = {
             type: Type.OBJECT,
@@ -193,7 +198,7 @@ export const generateFlashcards = async (
             required: ['flashcards'],
         };
         
-        const prompt = `Based on the provided study material, generate a reasonable number of key flashcards, up to a maximum of ${quantities.flashcards}. The actual number of flashcards should be appropriate for the length and complexity of the material. ${focusInstruction} ${langInstruction} Your output must be a single JSON object that strictly adheres to the provided schema.`;
+        const prompt = `Based on the provided study material, generate a reasonable number of key flashcards, up to a maximum of ${quantities.flashcards}. The actual number of flashcards should be appropriate for the length and complexity of the material. ${focusInstruction} ${langInstruction}${regenerationInstruction} Your output must be a single JSON object that strictly adheres to the provided schema.`;
 
         const contentParts = buildContentParts(material, prompt, files);
 
@@ -218,13 +223,15 @@ export const generateQuizzes = async (
   difficulty: SubjectDifficulty,
   amount: GenerationAmount,
   focus: string,
-  files?: { mimeType: string; data: string }[]
+  files?: { mimeType: string; data: string }[],
+  regenerationHint?: string
 ): Promise<{ [key in QuizType]?: QuizQuestion[] }> => {
     try {
         const model = 'gemini-2.5-flash';
         const langInstruction = getLanguageInstruction(language);
         const quantities = getAmountMapping(amount);
         const focusInstruction = focus ? `Pay special attention to the following topics or concepts: "${focus}".` : '';
+        const regenerationInstruction = regenerationHint ? ` (Internal generation hint: ${regenerationHint})` : '';
 
         const schema = {
             type: Type.OBJECT,
@@ -243,7 +250,7 @@ The set must include three types of quizzes. For each quiz type, generate a numb
 2.  **True/false quiz:** The options must be ["True", "False"], and \`correctAnswer\` must be an array with one element (e.g., ["True"]).
 3.  **Fill-in-the-blank quiz:** Use "___" for blanks. The \`options\` array must be empty, and \`correctAnswer\` must be an array with a single string for the blank.
 
-${langInstruction}
+${langInstruction}${regenerationInstruction}
 Your output must be a single JSON object that strictly adheres to the provided schema.`;
 
         const contentParts = buildContentParts(material, prompt, files);
@@ -369,7 +376,7 @@ export const generateQuizFeedback = async (language: 'en' | 'fr', incorrectQuest
         return response.text.trim();
     } catch (error) {
         console.error("Error generating quiz feedback:", error);
-        return "Could not generate feedback at this time.";
+        throw error; // Re-throw the error
     }
 }
 
@@ -565,7 +572,7 @@ export const generateQuizStrategyTip = async (score: number, language: 'en' | 'f
         return response.text.trim();
     } catch (error) {
         console.error("Error generating quiz strategy tip:", error);
-        return language === 'fr' ? "Impossible de générer un conseil pour le moment." : "Could not generate a tip at this time.";
+        throw error; // Re-throw the error
     }
 };
 

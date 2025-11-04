@@ -41,7 +41,9 @@ const QuizGenerationModal: React.FC<QuizGenerationModalProps> = ({ subject, onGe
         setError(null);
         try {
             const filePayloads = subject.files.map(f => ({ mimeType: f.type, data: f.data }));
-            const quizzes = await generateQuizzes(subject.material, language, difficulty, amount, focus, filePayloads);
+            // Pass a regeneration hint if it's a regeneration request
+            const regenerationHint = isRegeneration ? Math.random().toString() : undefined;
+            const quizzes = await generateQuizzes(subject.material, language, difficulty, amount, focus, filePayloads, regenerationHint);
             dispatch({ type: 'SET_QUIZZES', payload: { subjectId: subject.id, quizzes } });
             onGenerationComplete();
         } catch (e: any) {
@@ -54,7 +56,7 @@ const QuizGenerationModal: React.FC<QuizGenerationModalProps> = ({ subject, onGe
         } finally {
             setIsLoading(false);
         }
-    }, [subject, language, amount, difficulty, focus, hasMaterial, dispatch, t, onGenerationComplete]);
+    }, [subject, language, amount, difficulty, focus, hasMaterial, dispatch, t, onGenerationComplete, isRegeneration]);
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
@@ -211,9 +213,13 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
       try {
         const tips = await generateQuizFeedback(language, incorrectQuestions);
         setFeedback(tips);
-      } catch (error) {
-        console.error("Failed to get feedback:", error);
-        setFeedback(t('chatError'));
+      } catch (e: any) {
+        console.error("Failed to get feedback:", e);
+        if (e.toString().includes('429')) {
+            setFeedback(t('rateLimitError'));
+        } else {
+            setFeedback(t('errorGenerationFailed'));
+        }
       } finally {
         setIsFeedbackLoading(false);
       }
@@ -224,8 +230,13 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
     try {
         const tip = await generateQuizStrategyTip(score, language);
         setStrategyTip(tip);
-    } catch (error) {
-        console.error("Failed to get strategy tip:", error);
+    } catch (e: any) {
+        console.error("Failed to get strategy tip:", e);
+        if (e.toString().includes('429')) {
+            setStrategyTip(t('rateLimitError'));
+        } else {
+            setStrategyTip(t('errorGenerationFailed'));
+        }
     } finally {
         setIsStrategyTipLoading(false);
     }

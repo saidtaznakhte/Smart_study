@@ -37,7 +37,9 @@ const FlashcardGenerationModal: React.FC<FlashcardGenerationModalProps> = ({ sub
         setError(null);
         try {
             const filePayloads = subject.files.map(f => ({ mimeType: f.type, data: f.data }));
-            const flashcards = await generateFlashcards(subject.material, language, amount, focus, filePayloads);
+            // Pass a regeneration hint if it's a regeneration request
+            const regenerationHint = isRegeneration ? Math.random().toString() : undefined;
+            const flashcards = await generateFlashcards(subject.material, language, amount, focus, filePayloads, regenerationHint);
             dispatch({ type: 'SET_FLASHCARDS', payload: { subjectId: subject.id, flashcards } });
             onGenerationComplete();
         } catch (e: any) {
@@ -50,7 +52,7 @@ const FlashcardGenerationModal: React.FC<FlashcardGenerationModalProps> = ({ sub
         } finally {
             setIsLoading(false);
         }
-    }, [subject, language, amount, focus, hasMaterial, dispatch, t, onGenerationComplete]);
+    }, [subject, language, amount, focus, hasMaterial, dispatch, t, onGenerationComplete, isRegeneration]);
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
