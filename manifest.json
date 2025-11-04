@@ -3,7 +3,7 @@
   "description": "PrepAI is an intelligent, AI-powered study assistant designed to help students prepare for exams efficiently and intelligently. It uses Gemini to analyze study materials and habits — creating a personalized, adaptive learning plan.",
   "dir": "ltr",
   "display": "standalone",
-  "name": "PrepAI - Smart Study Planner",
+  "name": "PrepAI — Smart Study Planner & Exam Assistant",
   "orientation": "any",
   "scope": "/",
   "short_name": "PrepAI",
@@ -11,19 +11,23 @@
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "/prepa-ai-192x192.png",
+      "src": "https://webtoapps.com/assets/img/favicon.png",
       "type": "image/png",
-      "sizes": "192x192",
+      "sizes": "32x32",
       "isSquare": true,
-      "isPng": true
+      "isPng": true,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 32,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
     },
     {
-      "src": "/prepa-ai-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "isSquare": true,
-      "isPng": true
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
-  "id": "PrepAI"
+  "id": "Prepaai"
 }
