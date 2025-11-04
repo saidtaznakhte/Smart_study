@@ -47,12 +47,14 @@ self.addEventListener("message", (event) => {
   }
 });
 
-self.addEventListener('install', async (event) => {
-  event.waitUntil(
-    caches.open(CACHE)
-      .then((cache) => cache.addAll(precacheAssets.concat([offlineFallbackPage]))) // Ensure all precache assets and fallback are added
-  );
-});
+// The Workbox precaching takes care of the 'install' event and adds assets to cache.
+// No need for a separate manual 'install' listener here for precaching.
+// self.addEventListener('install', async (event) => {
+//   event.waitUntil(
+//     caches.open(CACHE)
+//       .then((cache) => cache.addAll(precacheAssets.concat([offlineFallbackPage])))
+//   );
+// });
 
 if (workbox.navigationPreload.isSupported()) {
   workbox.navigationPreload.enable();
@@ -62,6 +64,7 @@ if (workbox.navigationPreload.isSupported()) {
 workbox.precaching.precacheAndRoute(precacheAssets.map(url => ({ url, revision: null })));
 
 // Cache page navigations and other essential resources with network-first strategy
+// This also handles the offline fallback for navigation requests.
 workbox.routing.registerRoute(
   ({ request }) => request.mode === 'navigate',
   new workbox.strategies.NetworkFirst({
@@ -70,6 +73,20 @@ workbox.routing.registerRoute(
       new workbox.expiration.ExpirationPlugin({
         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
       }),
+      new workbox.routing.NavigationRoute.useHandler(
+        new workbox.strategies.NetworkFirst({
+          // Provide an offline fallback for navigation requests.
+          plugins: [
+            new workbox.cacheableResponse.CacheableResponsePlugin({
+              statuses: [0, 200],
+            }),
+          ],
+        }),
+        {
+          // Fallback to the offline page if the network request fails.
+          fallback: offlineFallbackPage,
+        }
+      ),
     ],
   })
 );
@@ -157,24 +174,26 @@ workbox.routing.registerRoute(
   })
 );
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const preloadResp = await event.preloadResponse;
+// Removed redundant manual 'fetch' listener for navigation,
+// as Workbox's registerRoute for navigation already handles this effectively.
+// self.addEventListener('fetch', (event) => {
+//   if (event.request.mode === 'navigate') {
+//     event.respondWith((async () => {
+//       try {
+//         const preloadResp = await event.preloadResponse;
 
-        if (preloadResp) {
-          return preloadResp;
-        }
+//         if (preloadResp) {
+//           return preloadResp;
+//         }
 
-        const networkResp = await fetch(event.request);
-        return networkResp;
-      } catch (error) {
-        console.warn('Fetch failed, serving offline fallback.', error);
-        const cache = await caches.open(CACHE);
-        const cachedResp = await cache.match(offlineFallbackPage);
-        return cachedResp;
-      }
-    })());
-  }
-});
+//         const networkResp = await fetch(event.request);
+//         return networkResp;
+//       } catch (error) {
+//         console.warn('Fetch failed, serving offline fallback.', error);
+//         const cache = await caches.open(CACHE);
+//         const cachedResp = await cache.match(offlineFallbackPage);
+//         return cachedResp;
+//       }
+//     })());
+//   }
+// });
