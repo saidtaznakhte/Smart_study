@@ -1,7 +1,7 @@
 
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { Subject, QuizQuestion, QuizType, GenerationAmount, SubjectDifficulty } from '../types';
-import { CheckCircle, XCircle, Loader2, Lightbulb, ListChecks, Circle, CircleDot, Binary, Pilcrow, Wand2, Bookmark, Download, Square, CheckSquare } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Lightbulb, ListChecks, Circle, CircleDot, Binary, Pilcrow, Wand2, Bookmark, Download, Square, CheckSquare, X } from 'lucide-react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { generateQuizFeedback, generateQuizzes, generateQuizStrategyTip } from '../services/geminiService';
@@ -14,7 +14,14 @@ interface QuizProps {
   subject: Subject;
 }
 
-const GenerationInterface: React.FC<{ subject: Subject; }> = ({ subject }) => {
+interface QuizGenerationModalProps {
+  subject: Subject;
+  onGenerationComplete: () => void;
+  onClose: () => void;
+  isRegeneration?: boolean;
+}
+
+const QuizGenerationModal: React.FC<QuizGenerationModalProps> = ({ subject, onGenerationComplete, onClose, isRegeneration = false }) => {
     const { dispatch } = useContext(AppContext);
     const { t, language } = useLanguage();
     const [amount, setAmount] = useState<GenerationAmount>(GenerationAmount.NORMAL);
@@ -36,6 +43,7 @@ const GenerationInterface: React.FC<{ subject: Subject; }> = ({ subject }) => {
             const filePayloads = subject.files.map(f => ({ mimeType: f.type, data: f.data }));
             const quizzes = await generateQuizzes(subject.material, language, difficulty, amount, focus, filePayloads);
             dispatch({ type: 'SET_QUIZZES', payload: { subjectId: subject.id, quizzes } });
+            onGenerationComplete();
         } catch (e: any) {
             if (e.toString().includes('429')) {
                 setError(t('rateLimitError'));
@@ -46,62 +54,74 @@ const GenerationInterface: React.FC<{ subject: Subject; }> = ({ subject }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [subject, language, amount, difficulty, focus, hasMaterial, dispatch, t]);
+    }, [subject, language, amount, difficulty, focus, hasMaterial, dispatch, t, onGenerationComplete]);
 
     return (
-        <div className="max-w-md mx-auto bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 space-y-6">
-            <div className="text-center">
-                <h2 className="text-xl font-bold">{t('generateQuizzes')}</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('noQuiz')}</p>
-            </div>
-
-            {!hasMaterial && (
-                <p className="text-center text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md text-sm">{t('addMaterialFirst')}</p>
-            )}
-
-            <div className="space-y-4">
-                <div>
-                    <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('contentAmount')}</p>
-                    <div className="flex justify-around gap-2">
-                        {Object.values(GenerationAmount).map(opt => (
-                            <button key={opt} onClick={() => setAmount(opt)} className={`w-full text-sm py-2 rounded-md transition-colors ${amount === opt ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'}`}>
-                                {t(opt.toLowerCase())}
-                            </button>
-                        ))}
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md animate-in slide-in-from-bottom-5 duration-500" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold">{isRegeneration ? t('regenerateQuizzes') : t('generateNewQuizzes')}</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="text-center">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{isRegeneration ? t('regenerateQuizzesSubtext') : t('noQuizAvailable')}</p>
                     </div>
-                </div>
-                 <div>
-                    <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('quizDifficulty')}</p>
-                    <div className="flex justify-around gap-2">
-                        {Object.values(SubjectDifficulty).map(opt => (
-                            <button key={opt} onClick={() => setDifficulty(opt)} className={`w-full text-sm py-2 rounded-md transition-colors ${difficulty === opt ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'}`}>
-                                {t(opt.toLowerCase())}
-                            </button>
-                        ))}
+
+                    {!hasMaterial && (
+                        <p className="text-center text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md text-sm">{t('addMaterialFirst')}</p>
+                    )}
+
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('contentAmount')}</p>
+                            <div className="flex justify-around gap-2">
+                                {Object.values(GenerationAmount).map(opt => (
+                                    <button key={opt} onClick={() => setAmount(opt)} className={`w-full text-sm py-2 rounded-md transition-colors ${amount === opt ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'}`}>
+                                        {t(opt.toLowerCase())}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                         <div>
+                            <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('quizDifficulty')}</p>
+                            <div className="flex justify-around gap-2">
+                                {Object.values(SubjectDifficulty).map(opt => (
+                                    <button key={opt} onClick={() => setDifficulty(opt)} className={`w-full text-sm py-2 rounded-md transition-colors ${difficulty === opt ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'}`}>
+                                        {t(opt.toLowerCase())}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('focusArea')}</p>
+                            <textarea
+                                value={focus}
+                                onChange={(e) => setFocus(e.target.value)}
+                                placeholder={t('focusPlaceholder')}
+                                className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+                                disabled={isLoading || !hasMaterial}
+                                rows={2}
+                            />
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('focusArea')}</p>
-                    <textarea
-                        value={focus}
-                        onChange={(e) => setFocus(e.target.value)}
-                        placeholder={t('focusPlaceholder')}
-                        className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
-                        disabled={isLoading || !hasMaterial}
-                        rows={2}
-                    />
+
+                    <div className="flex justify-end gap-2 pt-4">
+                         <button onClick={onClose} className="px-4 py-2 bg-slate-200 dark:bg-slate-600 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">{t('cancel')}</button>
+                        <button
+                            onClick={handleGenerate}
+                            disabled={isLoading || !hasMaterial}
+                            className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                        >
+                            {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                            {isLoading ? t('generatingButton') : t('generateQuizzesButton')}
+                        </button>
+                    </div>
+                    {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
                 </div>
             </div>
-
-            <button
-                onClick={handleGenerate}
-                disabled={isLoading || !hasMaterial}
-                className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-                {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                {isLoading ? t('generatingButton') : t('generateQuizzes')}
-            </button>
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </div>
     );
 };
@@ -121,16 +141,24 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
   const [strategyTip, setStrategyTip] = useState<string | null>(null);
   const [isStrategyTipLoading, setIsStrategyTipLoading] = useState(false);
   const [tipToSave, setTipToSave] = useState<{ title: string; content: string } | null>(null);
+  const [showGenerationModal, setShowGenerationModal] = useState(false); // New state for modal
 
 
   useEffect(() => {
-    // Reset component state if subject changes
+    // If no quizzes exist, show the generation modal by default
+    const hasAnyQuizzes = Object.values(subject.quizzes).some(q => Array.isArray(q) && q.length > 0);
+    if (!hasAnyQuizzes && !activeQuiz) {
+        setShowGenerationModal(true);
+    } else {
+        setShowGenerationModal(false);
+    }
+    // Reset component state if subject changes or quizzes are generated
     setActiveQuiz(null);
     setActiveQuizType(null);
     setShowResults(false);
     setFeedback(null);
     setStrategyTip(null);
-  }, [subject.id]);
+  }, [subject.id, subject.quizzes]); // Depend on subject.quizzes to react to new generation
   
   const startQuiz = (quizType: QuizType) => {
     const questions = subject.quizzes[quizType];
@@ -214,6 +242,9 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
   const resetQuiz = () => {
     setActiveQuiz(null);
     setActiveQuizType(null);
+    setShowResults(false);
+    setFeedback(null);
+    setStrategyTip(null);
   };
 
   const calculateScore = () => {
@@ -232,8 +263,32 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
     [subject.quizzes]
   );
 
+  // Render the generation modal if active
+  if (showGenerationModal) {
+    return (
+      <QuizGenerationModal
+        subject={subject}
+        onGenerationComplete={() => setShowGenerationModal(false)}
+        onClose={() => setShowGenerationModal(false)}
+        isRegeneration={hasQuizzes}
+      />
+    );
+  }
+
+  // If no quizzes and modal is not shown (shouldn't happen with current logic, but as fallback)
   if (!hasQuizzes) {
-    return <GenerationInterface subject={subject} />;
+    return (
+        <div className="max-w-md mx-auto bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 space-y-6 text-center">
+            <h2 className="text-xl font-bold">{t('noQuizTitle')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('noQuizAvailable')}</p>
+            <button
+                onClick={() => setShowGenerationModal(true)}
+                className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+            >
+                <Wand2 /> {t('generateQuizzesButton')}
+            </button>
+        </div>
+    );
   }
   
   // Quiz Selection Screen
@@ -258,6 +313,14 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
               <span className="font-semibold">{opt.label}</span>
             </button>
           ))}
+        </div>
+        <div className="mt-6 flex justify-center">
+            <button
+                onClick={() => setShowGenerationModal(true)}
+                className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold py-3 px-6 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
+            >
+                <Wand2 /> {t('regenerateQuizzesButton')}
+            </button>
         </div>
       </div>
     );
@@ -352,9 +415,17 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
             )
           })}
         </div>
-        <button onClick={resetQuiz} className="w-full mt-6 bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition-colors">
-          {t('backToQuizzes')}
-        </button>
+        <div className="flex gap-4 mt-6">
+            <button onClick={resetQuiz} className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition-colors">
+            {t('backToQuizzes')}
+            </button>
+            <button
+                onClick={() => setShowGenerationModal(true)}
+                className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold py-3 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
+            >
+                <Wand2 /> {t('regenerateQuizzesButton')}
+            </button>
+        </div>
       </div>
     );
   }
