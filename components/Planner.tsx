@@ -1,11 +1,10 @@
-
-
 import React, { useState, useContext, useRef, useCallback, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { analyzeTimetable } from '../services/geminiService';
 import { ScheduleItem, StudyWindow, TimetableAnalysis } from '../types';
-import { Upload, Edit3, Loader2, Wand2, FileUp, X, File as FileIcon, ArrowLeft, PlusCircle, Trash2 } from 'lucide-react';
+import { Upload, Edit3, Loader2, Wand2, FileUp, X, File as FileIcon, ArrowLeft, PlusCircle, Trash2, CalendarDays } from 'lucide-react';
+import { getDaysUntil, getNextDayOfWeek, getWeekDayName, isSameDay } from '../utils/dateUtils';
 
 type InputMode = 'upload' | 'manual';
 const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -113,7 +112,7 @@ const ScheduleEditModal: React.FC<ScheduleEditModalProps> = ({ itemData, onClose
 const Planner: React.FC = () => {
     const { state, dispatch } = useContext(AppContext);
     const { t, language } = useLanguage();
-    const { timetableAnalysis } = state;
+    const { timetableAnalysis, timetableGeneratedDate, subjects } = state;
 
     const [inputMode, setInputMode] = useState<InputMode>('upload');
     const [file, setFile] = useState<File | null>(null);
@@ -127,6 +126,26 @@ const Planner: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const currentDay = getWeekDayName(new Date());
+    const nextDay = getNextDayOfWeek(currentDay);
+
+    const isTimetableCurrent = timetableGeneratedDate && isSameDay(new Date(timetableGeneratedDate), new Date());
+    
+    // Derived state for current day's events
+    const todaysEvents = timetableAnalysis 
+        ? [...timetableAnalysis.schedule.filter(s => s.day === currentDay), ...timetableAnalysis.studyWindows.filter(sw => sw.day === currentDay)]
+        : [];
+    
+    // Derived state for tomorrow's events
+    const tomorrowsEvents = timetableAnalysis 
+        ? [...timetableAnalysis.schedule.filter(s => s.day === nextDay), ...timetableAnalysis.studyWindows.filter(sw => sw.day === nextDay)]
+        : [];
+
+    const upcomingExams = subjects
+        .filter(s => s.examDate && getDaysUntil(new Date(s.examDate)) >= 0 && getDaysUntil(new Date(s.examDate)) <= 14)
+        .sort((a, b) => new Date(a.examDate!).getTime() - new Date(b.examDate!).getTime());
+
 
     const colorPalette = [
         { bg: 'bg-rose-100', border: 'border-rose-500', text: 'text-rose-800', darkBg: 'dark:bg-rose-900/50', darkText: 'dark:text-rose-200' },
@@ -263,23 +282,16 @@ const Planner: React.FC = () => {
     };
     const handleRemoveItem = (index: number) => setManualSchedule(manualSchedule.filter((_, i) => i !== index));
 
-    const renderTimetableGrid = () => {
-        if (!timetableAnalysis) return null;
-    
-        const allItems: ((ScheduleItem & { isStudy: false }) | (StudyWindow & { isStudy: true }))[] = [
-            ...timetableAnalysis.schedule.map(s => ({...s, isStudy: false as const})), 
-            ...timetableAnalysis.studyWindows.map(sw => ({...sw, isStudy: true as const}))
-        ];
-    
+    const renderTimetableGrid = (dayFilter: string, items: (ScheduleItem | StudyWindow)[]) => {
         return (
-            <div className="mt-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
-                <div className="grid grid-cols-[60px_repeat(7,1fr)] relative" style={{ height: `${MIN_DISPLAY_HEIGHT_PX}px` }} role="region" aria-live="polite">
+            <div className="mt-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
+                <div className="grid grid-cols-[60px_1fr]" style={{ height: `${MIN_DISPLAY_HEIGHT_PX}px` }} role="region" aria-live="polite">
                     {/* Time Axis */}
-                    <div className="col-start-1 row-start-1 sticky left-0 z-10 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 pr-2 pt-8">
+                    <div className="col-start-1 row-start-1 sticky left-0 z-10 bg-white dark:bg-slate-800 border-r-2 border-slate-300 dark:border-slate-600 pr-2 pt-8">
                         {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => HOURS_START + i).map(hour => (
                             <div 
                                 key={`time-label-${hour}`} 
-                                className="absolute text-xs text-slate-500 text-right w-full" 
+                                className="absolute text-base font-bold text-slate-500 text-right w-full" 
                                 style={{ top: `${timeToPx(`${hour}:00`)}px`, transform: 'translateY(-50%)' }}
                             >
                                 {`${hour}:00`}
@@ -287,12 +299,10 @@ const Planner: React.FC = () => {
                         ))}
                     </div>
 
-                    {/* Day Headers */}
-                    {weekDays.map((day, dayIndex) => (
-                        <div key={day} className={`col-start-${dayIndex + 2} text-center font-semibold text-sm pb-2 border-b-2 border-slate-200 dark:border-slate-700`}>
-                            {t(day.toLowerCase())}
-                        </div>
-                    ))}
+                    {/* Day Column */}
+                    <div className="col-start-2 text-center font-semibold text-sm pb-2 border-b-2 border-slate-200 dark:border-slate-700">
+                        {t(dayFilter.toLowerCase())}
+                    </div>
 
                     {/* Grid Lines */}
                     {Array.from({ length: TOTAL_HOURS * 2 + 1 }, (_, i) => i * 30).map(minutes => { // Every 30 minutes
@@ -305,17 +315,17 @@ const Planner: React.FC = () => {
                         return (
                             <div
                                 key={`grid-line-${minutes}`}
-                                className={`absolute col-start-2 col-span-7 w-full ${isHourMark ? 'border-t border-slate-200 dark:border-slate-700' : 'border-t border-slate-100 dark:border-slate-700/50'}`}
+                                className={`absolute col-start-2 col-span-1 w-full ${isHourMark ? 'border-t-2 border-slate-300 dark:border-slate-600' : 'border-t border-slate-200 dark:border-slate-700/50'}`}
                                 style={{ top: `${topPx}px` }}
+                                aria-hidden="true"
                             ></div>
                         );
                     })}
 
                     {/* Events */}
-                    {allItems.map((item) => {
-                        const dayIndex = weekDays.indexOf(item.day);
-                        if (dayIndex === -1) return null;
-    
+                    {items
+                        .filter(item => item.day === dayFilter)
+                        .map((item) => {
                         const top = timeToPx(item.startTime);
                         const bottom = timeToPx(item.endTime);
                         const height = bottom - top;
@@ -325,10 +335,10 @@ const Planner: React.FC = () => {
                         const adjustTop = height < 20 ? top - (20 - height) / 2 : top; // Center if too small
 
                         const handleEditClick = () => {
-                            setEditingItem({ item, type: item.isStudy ? 'studyWindow' : 'schedule' });
+                            setEditingItem({ item, type: ('subject' in item) ? 'schedule' : 'studyWindow' });
                         }
 
-                        const isStudyWindow = item.isStudy;
+                        const isStudyWindow = 'suggestion' in item;
                         const subjectName = 'subject' in item ? item.subject : '';
                         const colorClasses = isStudyWindow 
                             ? { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800', darkBg: 'dark:bg-green-900/50', darkText: 'dark:text-green-200' }
@@ -341,26 +351,26 @@ const Planner: React.FC = () => {
                                 style={{ 
                                     top: `${adjustTop}px`, 
                                     height: `${actualHeight}px`, 
-                                    gridColumn: `${dayIndex + 2}`, // Position within day column
+                                    gridColumn: `2`, // Position within the single day column
                                     width: '100%',
                                 }}
                             >
                                 <button
                                     disabled={!isEditing}
                                     onClick={handleEditClick}
-                                    className={`w-full h-full rounded-lg p-2 text-xs text-left overflow-hidden transition-all border-l-4 ${colorClasses.bg} ${colorClasses.darkBg} ${colorClasses.border} ${isEditing ? 'cursor-pointer hover:ring-2 ring-offset-2 dark:ring-offset-slate-800 ring-indigo-500' : 'cursor-default'}`}
+                                    className={`w-full h-full rounded-lg p-2 text-left overflow-hidden transition-all border ${colorClasses.border} ${isStudyWindow ? 'border-2' : 'border-l-4'} ${colorClasses.bg} ${colorClasses.darkBg} ${isEditing ? 'cursor-pointer hover:ring-2 ring-offset-2 dark:ring-offset-slate-800 ring-indigo-500' : 'cursor-default'}`}
                                 >
-                                    <p className={`font-bold truncate ${colorClasses.text} ${colorClasses.darkText}`}>{('subject' in item) ? item.subject : t('studyWindows')}</p>
-                                    <p className={`${colorClasses.text} ${colorClasses.darkText}`}>{item.startTime} - {item.endTime}</p>
-                                    {item.isStudy && <p className={`mt-1 italic ${colorClasses.text} ${colorClasses.darkText}`}>"{item.suggestion}"</p>}
+                                    <p className={`text-sm font-bold truncate ${colorClasses.text} ${colorClasses.darkText}`}>{isStudyWindow ? t('studyBlockTitle') : ('subject' in item ? item.subject : '')}</p>
+                                    <p className={`text-xs ${colorClasses.text} ${colorClasses.darkText}`}>{item.startTime} - {item.endTime}</p>
+                                    {isStudyWindow && <p className={`mt-1 italic text-xs ${colorClasses.text} ${colorClasses.darkText}`}>"{(item as StudyWindow).suggestion}"</p>}
                                 </button>
 
                                 <div 
-                                    className={`absolute top-1/2 -translate-y-1/2 ${dayIndex > 2 ? 'right-full mr-2' : 'left-full ml-2'} w-48 p-2 text-xs bg-slate-800 dark:bg-slate-900 text-white rounded-md shadow-lg opacity-0 scale-95 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-10`}
+                                    className={`absolute top-1/2 -translate-y-1/2 left-full ml-2 w-48 p-2 text-xs bg-slate-800 dark:bg-slate-900 text-white rounded-md shadow-lg opacity-0 scale-95 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50`}
                                 >
-                                    <p className="font-bold border-b border-slate-600 pb-1 mb-1">{('subject' in item) ? item.subject : t('studyWindows')}</p>
+                                    <p className="font-bold border-b border-slate-600 pb-1 mb-1">{isStudyWindow ? t('studyBlockTitle') : ('subject' in item ? item.subject : '')}</p>
                                     <p>{t(item.day.toLowerCase())}, {item.startTime} - {item.endTime}</p>
-                                    {item.isStudy && <p className="mt-1 italic">"{item.suggestion}"</p>}
+                                    {isStudyWindow && <p className="mt-1 italic">"{(item as StudyWindow).suggestion}"</p>}
                                 </div>
                             </div>
                         );
@@ -385,10 +395,22 @@ const Planner: React.FC = () => {
                     ) : (
                         <div>
                             <form onSubmit={handleAddItem} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
-                                <input type="text" placeholder={t('subjectNamePlaceholder')} value={newManualItem.subject} onChange={e => setNewManualItem({...newManualItem, subject: e.target.value})} className="col-span-2 sm:col-span-4 p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
-                                <select value={newManualItem.day} onChange={e => setNewManualItem({...newManualItem, day: e.target.value as ScheduleItem['day']})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"><option disabled value="">{t('dayOfWeek')}</option>{weekDays.map(d => <option key={d} value={d}>{t(d.toLowerCase())}</option>)}</select>
-                                <input type="time" value={newManualItem.startTime} onChange={e => setNewManualItem({...newManualItem, startTime: e.target.value})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
-                                <input type="time" value={newManualItem.endTime} onChange={e => setNewManualItem({...newManualItem, endTime: e.target.value})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                <div className="col-span-2 sm:col-span-4">
+                                    <label htmlFor="manual-subject" className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('subjectNamePlaceholder')}</label>
+                                    <input id="manual-subject" type="text" placeholder={t('subjectNamePlaceholder')} value={newManualItem.subject} onChange={e => setNewManualItem({...newManualItem, subject: e.target.value})} className="mt-1 w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label htmlFor="manual-day" className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('dayOfWeek')}</label>
+                                    <select id="manual-day" value={newManualItem.day} onChange={e => setNewManualItem({...newManualItem, day: e.target.value as ScheduleItem['day']})} className="mt-1 w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"><option disabled value="">{t('dayOfWeek')}</option>{weekDays.map(d => <option key={d} value={d}>{t(d.toLowerCase())}</option>)}</select>
+                                </div>
+                                <div>
+                                    <label htmlFor="manual-start-time" className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('startTime')}</label>
+                                    <input id="manual-start-time" type="time" value={newManualItem.startTime} onChange={e => setNewManualItem({...newManualItem, startTime: e.target.value})} className="mt-1 w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label htmlFor="manual-end-time" className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('endTime')}</label>
+                                    <input id="manual-end-time" type="time" value={newManualItem.endTime} onChange={e => setNewManualItem({...newManualItem, endTime: e.target.value})} className="mt-1 w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                </div>
                                 <button type="submit" className="col-span-2 sm:col-span-1 bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-600">{t('add')}</button>
                             </form>
                             <div className="space-y-2 mt-4 max-h-32 overflow-y-auto pr-2">
@@ -399,7 +421,7 @@ const Planner: React.FC = () => {
                 </div>
                 <div className="flex flex-col items-center justify-center text-center p-6">
                     <Wand2 className="h-12 w-12 text-indigo-400 mb-4" />
-                    <button onClick={handleAnalyze} disabled={isLoading || (inputMode === 'upload' && !file) || (inputMode === 'manual' && manualSchedule.length === 0)} className="w-full max-w-xs bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"><Wand2 />{isLoading ? t('analyzingButton') : t('analyzeButton')}</button>
+                    <button onClick={handleAnalyze} disabled={isLoading || (inputMode === 'upload' && !file) || (inputMode === 'manual' && manualSchedule.length === 0)} className="w-full max-w-xs bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center justify-center gap-2"><Wand2 />{isLoading ? t('analyzingButton') : t('analyzeButton')}</button>
                     {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
                 </div>
             </div>
@@ -419,7 +441,7 @@ const Planner: React.FC = () => {
                         <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{t('plannerHeader')}</h1>
                         <p className="text-slate-500 dark:text-slate-400 mt-1">{t('plannerSubheader')}</p>
                     </div>
-                    {timetableAnalysis && (
+                    {timetableAnalysis && isTimetableCurrent && (
                         <div className="flex items-center gap-2">
                             {isEditing && (
                                 <>
@@ -435,11 +457,67 @@ const Planner: React.FC = () => {
                 </div>
             </div>
             
-            {!timetableAnalysis && !isLoading && renderInputSection()}
-
-            {isLoading && (<div className="text-center p-10" role="status" aria-live="polite"><Loader2 className="h-12 w-12 text-indigo-500 animate-spin mx-auto"/><p className="mt-4 font-semibold">{t('analyzingButton')}</p><p className="text-slate-500">{t('plannerDescription')}</p></div>)}
+            {isLoading && (
+                <div className="text-center p-10" role="status" aria-live="polite">
+                    <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mx-auto"/>
+                    <p className="mt-4 font-semibold">{t('analyzingButton')}</p>
+                    <p className="text-slate-500">{t('plannerDescription')}</p>
+                </div>
+            )}
             
-            {timetableAnalysis && renderTimetableGrid()}
+            {!isLoading && (!timetableAnalysis || !isTimetableCurrent) && (
+                <>
+                    <div className="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-xl text-yellow-800 dark:text-yellow-300 text-sm flex items-center gap-2">
+                        <CalendarDays size={20} />
+                        {timetableAnalysis ? t('timetableStaleMessage') : t('schedulePlaceholder')}
+                    </div>
+                    {renderInputSection()}
+                </>
+            )}
+
+            {!isLoading && timetableAnalysis && isTimetableCurrent && (
+                <>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mt-8">{t('todaysPlan', { day: t(currentDay.toLowerCase()) })}</h2>
+                    {todaysEvents.length > 0 ? renderTimetableGrid(currentDay, todaysEvents) : (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 text-center text-slate-500 dark:text-slate-400 font-medium">
+                            {t('noEventsToday')}
+                        </div>
+                    )}
+
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mt-8">{t('tomorrowsPlan', { day: t(nextDay.toLowerCase()) })}</h2>
+                    {tomorrowsEvents.length > 0 ? renderTimetableGrid(nextDay, tomorrowsEvents) : (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 text-center text-slate-500 dark:text-slate-400 font-medium">
+                            {t('noEventsTomorrow')}
+                        </div>
+                    )}
+                
+                    {/* Upcoming Exams Section */}
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 mt-8">
+                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4"><CalendarDays className="text-indigo-500" /> {t('upcomingExams')}</h2>
+                        {upcomingExams.length > 0 ? (
+                            <ul className="space-y-3">
+                                {upcomingExams.map(subject => (
+                                    <li key={subject.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <div>
+                                            <p className="font-semibold">{subject.name}</p>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                {t('examOn', { date: new Date(subject.examDate!).toLocaleDateString() })}
+                                            </p>
+                                        </div>
+                                        <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                            {getDaysUntil(new Date(subject.examDate!)) === 0 ? t('today') : t('daysUntilExam', { count: getDaysUntil(new Date(subject.examDate!)) })}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="text-slate-500 dark:text-slate-400 text-center font-medium">
+                                {t('noUpcomingExams')}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 };

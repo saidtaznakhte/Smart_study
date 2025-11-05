@@ -64,12 +64,12 @@ const quizSchema = {
       options: {
         type: Type.ARRAY,
         items: { type: Type.STRING },
-        description: 'An array of possible answers. For True/False, this must be ["True", "False"]. For Fill-in-the-Blank, this should be an empty array.',
+        description: 'An array of possible answers. For True/False, this must be ["True", "False"]. For Fill-in-the-blank, this should be an empty array.',
       },
       correctAnswer: {
         type: Type.ARRAY,
         items: { type: Type.STRING },
-        description: 'An array of correct answers. For True/False and Fill-in-the-Blank, this must be an array with a single string. For Multiple Choice, it can contain one or more strings.'
+        description: 'An array of correct answers. For True/False and Fill-in-the-blank, this must be an array with a single string. For Multiple Choice, it can contain one or more strings.'
       },
       explanation: { type: Type.STRING, description: 'A brief explanation for why the answer is correct.' },
     },
@@ -503,12 +503,14 @@ export const analyzeTimetable = async (
         });
     });
 
-    const result = JSON.parse(response.text.trim()) as TimetableAnalysis;
+    const result = JSON.parse(response.text.trim()) as Omit<TimetableAnalysis, 'generatedDate'>;
     
     result.schedule = result.schedule.map(item => ({...item, id: crypto.randomUUID() }));
     result.studyWindows = result.studyWindows.map(item => ({...item, id: crypto.randomUUID() }));
 
-    return result;
+    // Add generatedDate to the result
+    const fullResult: TimetableAnalysis = { ...result, generatedDate: new Date().toISOString() };
+    return fullResult;
 
   } catch (error) {
     console.error("Error analyzing timetable:", error);

@@ -8,6 +8,7 @@ interface AppState {
   studyIntensity: StudyIntensity | null;
   activeSubjectId: string | null;
   timetableAnalysis: TimetableAnalysis | null;
+  timetableGeneratedDate: string | null; // New field
   dashboardInsights: DailyDashboardData | null;
   notificationsEnabled: boolean;
 }
@@ -45,6 +46,7 @@ const initialState: AppState = {
   studyIntensity: null,
   activeSubjectId: null,
   timetableAnalysis: null,
+  timetableGeneratedDate: null, // Initial state for new field
   dashboardInsights: null,
   notificationsEnabled: true,
 };
@@ -222,7 +224,7 @@ const AppReducer = (state: AppState, action: Action): AppState => {
     case 'VIEW_IMAGE_EDITOR':
       return { ...state, view: 'imageEditor', activeSubjectId: null };
     case 'UPDATE_TIMETABLE_ANALYSIS':
-      return { ...state, timetableAnalysis: action.payload };
+      return { ...state, timetableAnalysis: action.payload, timetableGeneratedDate: action.payload.generatedDate };
     case 'LOG_PROGRESS_EVENT':
       return {
         ...state,
@@ -274,6 +276,7 @@ const loadState = (): AppState | undefined => {
          ...initialState,
          ...storedState,
          notificationsEnabled: storedState.notificationsEnabled ?? true,
+         timetableGeneratedDate: storedState.timetableGeneratedDate ?? null, // Load new field
          view: 'dashboard',
          activeSubjectId: null,
        };
@@ -313,6 +316,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         subjects: subjectsForStorage, // Use the sanitized subjects array
         studyIntensity: state.studyIntensity,
         timetableAnalysis: state.timetableAnalysis,
+        timetableGeneratedDate: state.timetableGeneratedDate, // Save new field
         dashboardInsights: state.dashboardInsights,
         notificationsEnabled: state.notificationsEnabled,
       };
@@ -322,7 +326,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (error) {
        console.error("Could not save state to localStorage", error);
     }
-  }, [state.user, state.subjects, state.studyIntensity, state.timetableAnalysis, state.dashboardInsights, state.notificationsEnabled]);
+  }, [state.user, state.subjects, state.studyIntensity, state.timetableAnalysis, state.timetableGeneratedDate, state.dashboardInsights, state.notificationsEnabled]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

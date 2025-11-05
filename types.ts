@@ -115,4 +115,5 @@ export interface StudyWindow {
 export interface TimetableAnalysis {
   schedule: ScheduleItem[];
   studyWindows: StudyWindow[];
+  generatedDate: string; // ISO string of the date this analysis was generated for
 }

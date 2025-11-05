@@ -1,4 +1,3 @@
-
 {
   "onboardingWelcome": "Bienvenue sur PrepAI !",
   "onboardingSubtext": "Configurons votre plan d'étude personnalisé.",
@@ -215,5 +214,15 @@
   "unsupportedFileType": "Type de fichier non pris en charge pour {{fileName}}. Veuillez utiliser un format pris en charge.",
   "unsupportedTimetableFileType": "Type de fichier non pris en charge pour l'emploi du temps : {{fileName}}. Veuillez télécharger une image PDF, JPG ou PNG.",
   "manualEntryTooLong": "La saisie manuelle est trop longue. Veuillez raccourcir votre emploi du temps.",
-  "pleaseUploadImageFile": "Veuillez télécharger un fichier image valide (PNG, JPEG, WEBP)."
+  "pleaseUploadImageFile": "Veuillez télécharger un fichier image valide (PNG, JPEG, WEBP).",
+  "todaysPlan": "Plan du jour ({{day}})",
+  "tomorrowsPlan": "Plan de demain ({{day}})",
+  "upcomingExams": "Examens à venir",
+  "noUpcomingExams": "Aucun examen programmé dans les 14 prochains jours.",
+  "daysUntilExam": "Dans {{count}} jours",
+  "today": "Aujourd'hui !",
+  "timetableStaleMessage": "Votre analyse d'emploi du temps est obsolète. Veuillez réanalyser votre emploi du temps pour le plan du jour.",
+  "noEventsToday": "Aucun cours ou créneau d'étude prévu pour aujourd'hui. Profitez de votre temps libre ou ajoutez de nouveaux événements !",
+  "noEventsTomorrow": "Aucun cours ou créneau d'étude prévu pour demain. Parfait pour étudier de manière flexible ou se détendre !",
+  "studyBlockTitle": "Temps d'étude"
 }
