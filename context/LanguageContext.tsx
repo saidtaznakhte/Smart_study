@@ -1,6 +1,16 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+
+// These paths are correct based on your project structure:
+// from 'context/' -> up one level '..' -> into 'translations/'
+import enTranslations from '../translations/en.json';
+import frTranslations from '../translations/fr.json';
 
 type Language = 'en' | 'fr';
+
+// This defines the shape of your translations
+interface Translations {
+  [key: string]: string;
+}
 
 interface LanguageContextType {
   language: Language;
@@ -10,42 +20,31 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+// This object holds your imported translations
+const allTranslations = {
+  en: enTranslations as Translations,
+  fr: frTranslations as Translations,
+};
+
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('en');
-  const [translations, setTranslations] = useState<{ [key: string]: { [key: string]: string } } | null>(null);
 
-  useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        const [enResponse, frResponse] = await Promise.all([
-          fetch('./translations/en.json'),
-          fetch('./translations/fr.json')
-        ]);
-        if (!enResponse.ok || !frResponse.ok) {
-          throw new Error('Failed to fetch translation files');
-        }
-        const en = await enResponse.json();
-        const fr = await frResponse.json();
-        setTranslations({ en, fr });
-      } catch (error) {
-        console.error('Error loading translations:', error);
-      }
-    };
-    loadTranslations();
-  }, []);
+  // We have removed the `useEffect` and `fetch` code.
+  // The translations are now loaded directly with `import`.
 
   const t = useCallback((key: string, replacements: { [key: string]: string | number } = {}) => {
-    if (!translations) {
-      return key; // Render keys as a fallback while translations are loading
-    }
-    const langTranslations = translations[language] || translations.en;
+    // Get translations for the current language, or default to English
+    const langTranslations = allTranslations[language] || allTranslations.en;
+    
+    // Find the translation for the key, or default to the key itself if not found
     let translation = langTranslations[key] || key;
     
+    // Replace any placeholders like {{name}}
     Object.keys(replacements).forEach(rKey => {
       translation = translation.replace(`{{${rKey}}}`, String(replacements[rKey]));
     });
     return translation;
-  }, [language, translations]);
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
