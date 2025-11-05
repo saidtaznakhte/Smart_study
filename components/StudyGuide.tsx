@@ -61,12 +61,24 @@ const StudyGuide: React.FC<StudyGuideProps> = ({ subject }) => {
 
   const handleFilesAdded = async (newFiles: File[]) => {
       for (const file of newFiles) {
+          if (!file || file.size === 0) {
+              alert(t('invalidOrEmptyFile'));
+              continue;
+          }
+          // Basic type validation for study guide files
+          const supportedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'text/markdown', 'image/jpeg', 'image/png'];
+          if (!supportedTypes.includes(file.type)) {
+              alert(t('unsupportedFileType', { fileName: file.name }));
+              continue;
+          }
+
           const base64Data = await fileToBase64(file);
           const newFile: SubjectFile = {
               id: crypto.randomUUID(),
               name: file.name,
               type: file.type,
               data: base64Data,
+              uploadDate: new Date().toISOString(), // Store upload date
           };
           dispatch({ type: 'ADD_SUBJECT_FILE', payload: { subjectId: subject.id, file: newFile } });
       }

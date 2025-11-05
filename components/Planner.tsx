@@ -7,7 +7,8 @@ import { ScheduleItem, StudyWindow, TimetableAnalysis } from '../types';
 import { Upload, Edit3, Loader2, Wand2, FileUp, X, File as FileIcon, ArrowLeft, PlusCircle, Trash2 } from 'lucide-react';
 
 type InputMode = 'upload' | 'manual';
-const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+// Update weekDays to include all 7 days to match the ScheduleItem and StudyWindow types.
+const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 // --- Schedule Edit Modal Component ---
 interface ScheduleEditModalProps {
@@ -96,7 +97,8 @@ const Planner: React.FC = () => {
     const [inputMode, setInputMode] = useState<InputMode>('upload');
     const [file, setFile] = useState<File | null>(null);
     const [manualSchedule, setManualSchedule] = useState<Omit<ScheduleItem, 'id'>[]>([]);
-    const [newItem, setNewItem] = useState({ subject: '', day: 'Monday' as const, startTime: '', endTime: '' });
+    // Fix: Explicitly type newItem to allow all ScheduleItem['day'] types, not just 'Monday' literal.
+    const [newItem, setNewItem] = useState<Omit<ScheduleItem, 'id'>>({ subject: '', day: 'Monday', startTime: '', endTime: '' });
     
     const [isEditing, setIsEditing] = useState(false);
     const [editingItem, setEditingItem] = useState<ScheduleEditModalProps['itemData'] | null>(null);
@@ -150,16 +152,33 @@ const Planner: React.FC = () => {
         setError(null);
         try {
             let analysisResult: TimetableAnalysis;
-            if (inputMode === 'upload' && file) {
+            if (inputMode === 'upload') {
+                if (!file || file.size === 0) {
+                    setError(t('invalidOrEmptyFile'));
+                    setIsLoading(false);
+                    return;
+                }
+                const supportedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+                if (!supportedTypes.includes(file.type)) {
+                    setError(t('unsupportedTimetableFileType', { fileName: file.name }));
+                    setIsLoading(false);
+                    return;
+                }
                 const base64Data = await fileToBase64(file);
                 analysisResult = await analyzeTimetable(language, { mimeType: file.type, data: base64Data });
             } else if (inputMode === 'manual' && manualSchedule.length > 0) {
                 const manualEntryText = manualSchedule.map(item =>
                     `${item.subject} on ${item.day} from ${item.startTime} to ${item.endTime}`
                 ).join('\n');
+                if (manualEntryText.length > 20000) {
+                    console.warn("Manual timetable entry too long. Please shorten content before sending.");
+                    setError(t('manualEntryTooLong'));
+                    setIsLoading(false);
+                    return;
+                }
                 analysisResult = await analyzeTimetable(language, undefined, manualEntryText);
             } else {
-                setError(t('errorAddMaterialOrFile'));
+                setError(t('errorAddMaterialOrFile')); // Generic error if neither file nor manual entry is provided
                 setIsLoading(false);
                 return;
             }

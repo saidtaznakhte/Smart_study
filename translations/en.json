@@ -210,5 +210,10 @@
   "day_singular": "day",
   "days_plural": "days",
   "month_singular": "month",
-  "months_plural": "months"
+  "months_plural": "months",
+  "invalidOrEmptyFile": "Invalid or empty file. Please re-upload.",
+  "unsupportedFileType": "Unsupported file type for {{fileName}}. Please use a supported format.",
+  "unsupportedTimetableFileType": "Unsupported file type for timetable: {{fileName}}. Please upload a PDF, JPG, or PNG image.",
+  "manualEntryTooLong": "Manual entry is too long. Please shorten your timetable input.",
+  "pleaseUploadImageFile": "Please upload a valid image file (PNG, JPEG, WEBP)."
 }

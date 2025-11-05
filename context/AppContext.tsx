@@ -295,11 +295,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Persist everything from the subject...
         ...subject,
         // ...except for the large base64 data within files.
+        // NOTE: File content (base64 `data`) is intentionally NOT stored in localStorage
+        // due to size constraints. It is expected to be retrieved or re-uploaded.
+        // File metadata (id, name, type, uploadDate) is retained.
         files: subject.files.map(file => ({
           id: file.id,
           name: file.name,
           type: file.type,
           data: '', // Clear only the large base64 data string
+          uploadDate: file.uploadDate, // Persist upload date
         })),
       }));
 

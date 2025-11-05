@@ -51,6 +51,7 @@ export interface SubjectFile {
   name: string;
   type: string; // Mime type
   data: string; // Base64 encoded
+  uploadDate?: string; // ISO String
 }
 
 export interface ProgressEvent {

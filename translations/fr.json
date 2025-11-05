@@ -210,5 +210,10 @@
   "day_singular": "jour",
   "days_plural": "jours",
   "month_singular": "mois",
-  "months_plural": "mois"
+  "months_plural": "mois",
+  "invalidOrEmptyFile": "Fichier invalide ou vide. Veuillez le télécharger à nouveau.",
+  "unsupportedFileType": "Type de fichier non pris en charge pour {{fileName}}. Veuillez utiliser un format pris en charge.",
+  "unsupportedTimetableFileType": "Type de fichier non pris en charge pour l'emploi du temps : {{fileName}}. Veuillez télécharger une image PDF, JPG ou PNG.",
+  "manualEntryTooLong": "La saisie manuelle est trop longue. Veuillez raccourcir votre emploi du temps.",
+  "pleaseUploadImageFile": "Veuillez télécharger un fichier image valide (PNG, JPEG, WEBP)."
 }

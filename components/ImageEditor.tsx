@@ -35,8 +35,12 @@ const ImageEditor: React.FC = () => {
     };
 
     const handleFileSelected = async (file: File) => {
+        if (!file || file.size === 0) {
+            setError(t('invalidOrEmptyFile'));
+            return;
+        }
         if (!file.type.startsWith('image/')) {
-            setError('Please upload a valid image file.');
+            setError(t('pleaseUploadImageFile'));
             return;
         }
         setError(null);

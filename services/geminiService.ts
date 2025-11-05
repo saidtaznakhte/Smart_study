@@ -1,8 +1,16 @@
-
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from '@google/genai';
 import { Flashcard, QuizQuestion, ChatMessage, SubjectDifficulty, TimetableAnalysis, QuizType, Subject, ProgressEvent, GenerationAmount, DashboardInsights } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Function to get a new Gemini client instance
+const getGeminiClient = () => {
+    // Ensure API_KEY is read right before creating the client
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        console.error("API Key is not defined. Please ensure process.env.API_KEY is set and valid.");
+        throw new Error("API Key is missing. Please ensure your API key is correctly configured.");
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
 // Helper for retrying Gemini API calls with exponential backoff
 const callGeminiWithRetry = async <T>(apiCall: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
@@ -19,6 +27,13 @@ const callGeminiWithRetry = async <T>(apiCall: () => Promise<T>, retries = 3, de
             console.error("Gemini API call failed after retries or with a non-retriable error:", error);
             throw error;
         }
+    }
+};
+
+const MAX_TEXT_INPUT_LENGTH = 20000;
+const warnIfTooLong = (input: string | undefined, inputName: string) => {
+    if (input && input.length > MAX_TEXT_INPUT_LENGTH) {
+        console.warn(`Gemini input for '${inputName}' is too long (${input.length} characters). Please consider shortening it.`);
     }
 };
 
@@ -100,6 +115,9 @@ export const generateSummary = async (
   files?: { mimeType: string; data: string }[]
 ): Promise<string> => {
     try {
+        warnIfTooLong(material, 'study material');
+        warnIfTooLong(focus, 'focus area');
+
         const model = 'gemini-2.5-flash';
         const langInstruction = getLanguageInstruction(language);
         const focusInstruction = focus ? `Pay special attention to the following topics or concepts: "${focus}".` : '';
@@ -162,11 +180,14 @@ ${langInstruction}`;
         
         const contentParts = buildContentParts(material, prompt, files);
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model,
-            contents: { parts: contentParts },
-            config: { thinkingConfig: { thinkingBudget: 0 } },
-        }));
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+            const ai = getGeminiClient(); // Get client dynamically
+            return ai.models.generateContent({
+                model,
+                contents: { parts: contentParts },
+                config: { thinkingConfig: { thinkingBudget: 0 } },
+            });
+        });
 
         return response.text.trim();
     } catch (error) {
@@ -184,6 +205,9 @@ export const generateFlashcards = async (
   regenerationHint?: string
 ): Promise<Omit<Flashcard, 'id' | 'easinessFactor' | 'interval' | 'repetitions' | 'dueDate'>[]> => {
     try {
+        warnIfTooLong(material, 'study material');
+        warnIfTooLong(focus, 'focus area');
+
         const model = 'gemini-2.5-flash';
         const langInstruction = getLanguageInstruction(language);
         const quantities = getAmountMapping(amount);
@@ -202,11 +226,14 @@ export const generateFlashcards = async (
 
         const contentParts = buildContentParts(material, prompt, files);
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model,
-            contents: { parts: contentParts },
-            config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
-        }));
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+            const ai = getGeminiClient(); // Get client dynamically
+            return ai.models.generateContent({
+                model,
+                contents: { parts: contentParts },
+                config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
+            });
+        });
 
         const result = JSON.parse(response.text.trim());
         return result.flashcards;
@@ -227,6 +254,9 @@ export const generateQuizzes = async (
   regenerationHint?: string
 ): Promise<{ [key in QuizType]?: QuizQuestion[] }> => {
     try {
+        warnIfTooLong(material, 'study material');
+        warnIfTooLong(focus, 'focus area');
+
         const model = 'gemini-2.5-flash';
         const langInstruction = getLanguageInstruction(language);
         const quantities = getAmountMapping(amount);
@@ -255,11 +285,14 @@ Your output must be a single JSON object that strictly adheres to the provided s
 
         const contentParts = buildContentParts(material, prompt, files);
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model,
-            contents: { parts: contentParts },
-            config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
-        }));
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+            const ai = getGeminiClient(); // Get client dynamically
+            return ai.models.generateContent({
+                model,
+                contents: { parts: contentParts },
+                config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
+            });
+        });
 
         const result = JSON.parse(response.text.trim());
         return result;
@@ -278,6 +311,9 @@ export const getChatResponse = async (
     files?: { mimeType: string; data: string }[]
 ): Promise<string> => {
   try {
+    warnIfTooLong(material, 'chat material context');
+    history.forEach((msg, index) => warnIfTooLong(msg.content, `chat message ${index}`));
+
     const model = 'gemini-2.5-flash';
     const langInstruction = getLanguageInstruction(language);
       
@@ -313,15 +349,18 @@ ${material || "No text material provided. Rely on attached files and general kno
         }
     });
 
-    const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-        model,
+    const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+        const ai = getGeminiClient(); // Get client dynamically
         // @ts-ignore - The `role` in `ChatMessage` matches the expected 'user'|'model'.
-        contents: historyForApi,
-        config: {
-            systemInstruction,
-            thinkingConfig: { thinkingBudget: 0 },
-        },
-    }));
+        return ai.models.generateContent({
+            model,
+            contents: historyForApi,
+            config: {
+                systemInstruction,
+                thinkingConfig: { thinkingBudget: 0 },
+            },
+        });
+    });
 
     return response.text.trim();
 
@@ -333,22 +372,27 @@ ${material || "No text material provided. Rely on attached files and general kno
 
 export const generateSpeech = async (text: string): Promise<string> => {
   try {
+    warnIfTooLong(text, 'speech input text');
+
     const model = 'gemini-2.5-flash-preview-tts';
     const voice = 'Kore';
 
-    const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-      model,
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voice },
-          },
-        },
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-    }));
+    const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+        const ai = getGeminiClient(); // Get client dynamically
+        return ai.models.generateContent({
+            model,
+            contents: [{ parts: [{ text }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: voice },
+                    },
+                },
+                thinkingConfig: { thinkingBudget: 0 },
+            },
+        });
+    });
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!base64Audio) {
@@ -368,11 +412,16 @@ export const generateQuizFeedback = async (language: 'en' | 'fr', incorrectQuest
         const langInstruction = getLanguageInstruction(language);
         const prompt = `A student took a quiz and answered the following questions incorrectly. Provide 2-3 concise, actionable learning tips to help them understand the core concepts they're struggling with. Use markdown for formatting. ${langInstruction}\n\nIncorrect Questions:\n${incorrectQuestions.map(q => `- ${q.question} (Correct Answer: ${q.correctAnswer.join(', ')})`).join('\n')}`;
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({ 
-          model, 
-          contents: prompt,
-          config: { thinkingConfig: { thinkingBudget: 0 } },
-        }));
+        warnIfTooLong(prompt, 'quiz feedback prompt');
+
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+            const ai = getGeminiClient(); // Get client dynamically
+            return ai.models.generateContent({ 
+                model, 
+                contents: prompt,
+                config: { thinkingConfig: { thinkingBudget: 0 } },
+            });
+        });
         return response.text.trim();
     } catch (error) {
         console.error("Error generating quiz feedback:", error);
@@ -422,6 +471,8 @@ export const analyzeTimetable = async (
   manualEntry?: string
 ): Promise<TimetableAnalysis> => {
   try {
+    warnIfTooLong(manualEntry, 'manual timetable entry');
+
     const model = 'gemini-2.5-flash';
     const langInstruction = getLanguageInstruction(language);
     
@@ -442,11 +493,14 @@ export const analyzeTimetable = async (
       contentParts.push({ text: `Here is the schedule entered as text:\n\n${manualEntry}` });
     }
 
-    const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-      model,
-      contents: { parts: contentParts },
-      config: { responseMimeType: 'application/json', responseSchema: timetableAnalysisSchema, thinkingConfig: { thinkingBudget: 0 } },
-    }));
+    const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+        const ai = getGeminiClient(); // Get client dynamically
+        return ai.models.generateContent({
+            model,
+            contents: { parts: contentParts },
+            config: { responseMimeType: 'application/json', responseSchema: timetableAnalysisSchema, thinkingConfig: { thinkingBudget: 0 } },
+        });
+    });
 
     const result = JSON.parse(response.text.trim()) as TimetableAnalysis;
     
@@ -524,11 +578,16 @@ Instructions:
 ${langInstruction}
 Your output must be a single JSON object that strictly adheres to the provided schema.`;
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
-        }));
+        warnIfTooLong(prompt, 'dashboard insights prompt'); // Check combined prompt content
+
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+            const ai = getGeminiClient(); // Get client dynamically
+            return ai.models.generateContent({
+                model,
+                contents: prompt,
+                config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
+            });
+        });
 
         const result = JSON.parse(response.text.trim());
         // Trim individual string properties within the result
@@ -564,11 +623,16 @@ export const generateQuizStrategyTip = async (score: number, language: 'en' | 'f
 
         const prompt = `You are an expert learning coach. Based on a student's recent quiz performance, provide one concise, encouraging, and actionable study strategy tip. The tip should introduce a specific, well-known learning method (like the Feynman technique, spaced repetition, active recall, mind mapping, etc.) relevant to their performance level. Keep the tip to 2-3 sentences. ${userPerformanceContext} ${langInstruction}`;
 
-        const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({ 
-          model, 
-          contents: prompt,
-          config: { thinkingConfig: { thinkingBudget: 0 } },
-        }));
+        warnIfTooLong(prompt, 'quiz strategy tip prompt'); // Check combined prompt content
+
+        const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+            const ai = getGeminiClient(); // Get client dynamically
+            return ai.models.generateContent({ 
+                model, 
+                contents: prompt,
+                config: { thinkingConfig: { thinkingBudget: 0 } },
+            });
+        });
         return response.text.trim();
     } catch (error) {
         console.error("Error generating quiz strategy tip:", error);
@@ -582,6 +646,8 @@ export const editImage = async (
   prompt: string
 ): Promise<string> => {
   try {
+    warnIfTooLong(prompt, 'image edit prompt');
+
     const model = 'gemini-2.5-flash-image';
 
     const imagePart = {
@@ -595,16 +661,19 @@ export const editImage = async (
       text: prompt,
     };
 
-    const response = await callGeminiWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-      model,
-      contents: {
-        parts: [imagePart, textPart],
-      },
-      config: {
-        responseModalities: [Modality.IMAGE],
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-    }));
+    const response = await callGeminiWithRetry<GenerateContentResponse>(() => {
+        const ai = getGeminiClient(); // Get client dynamically
+        return ai.models.generateContent({
+            model,
+            contents: {
+                parts: [imagePart, textPart],
+            },
+            config: {
+                responseModalities: [Modality.IMAGE],
+                thinkingConfig: { thinkingBudget: 0 },
+            },
+        });
+    });
 
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
