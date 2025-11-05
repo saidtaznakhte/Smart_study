@@ -34,7 +34,7 @@ const StudyGuide: React.FC<StudyGuideProps> = ({ subject }) => {
     });
   };
 
-  const handleGenerateSummary = useCallback(async () => {
+  const handleGenerateStudyGuide = useCallback(async () => {
     if (!material.trim() && subject.files.length === 0) {
       setError(t('errorAddMaterialOrFile'));
       return;
@@ -62,13 +62,13 @@ const StudyGuide: React.FC<StudyGuideProps> = ({ subject }) => {
   const handleFilesAdded = async (newFiles: File[]) => {
       for (const file of newFiles) {
           if (!file || file.size === 0) {
-              alert(t('invalidOrEmptyFile'));
+              setError(t('invalidOrEmptyFile')); // Use state for error message
               continue;
           }
           // Basic type validation for study guide files
           const supportedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'text/markdown', 'image/jpeg', 'image/png'];
           if (!supportedTypes.includes(file.type)) {
-              alert(t('unsupportedFileType', { fileName: file.name }));
+              setError(t('unsupportedFileType', { fileName: file.name })); // Use state for error message
               continue;
           }
 
@@ -207,18 +207,18 @@ const StudyGuide: React.FC<StudyGuideProps> = ({ subject }) => {
         </div>
 
         <button
-          onClick={handleGenerateSummary}
+          onClick={handleGenerateStudyGuide}
           disabled={isLoading || (!material.trim() && subject.files.length === 0)}
           className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
-          {isLoading ? t('generatingButton') : t('generateSummary')}
+          {isLoading ? t('generatingButton') : t('generateStudyGuide')}
         </button>
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
       </div>
 
       <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Wand2 className="text-indigo-500" /> {t('aiSummaryTitle')}</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Wand2 className="text-indigo-500" /> {t('aiStudyGuideTitle')}</h2>
         {isLoading && (
            <div className="space-y-4 animate-pulse">
             <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
@@ -227,14 +227,16 @@ const StudyGuide: React.FC<StudyGuideProps> = ({ subject }) => {
             <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
            </div>
         )}
-        {!isLoading && subject.summary && (
-          <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: parsedSummary }} />
-        )}
-        {!isLoading && !subject.summary && (
-          <div className="text-center text-slate-500 dark:text-slate-400 py-10">
-            <p>{t('summaryPlaceholder')}</p>
-          </div>
-        )}
+        <div role="status" aria-live="polite"> {/* Added aria-live */}
+          {!isLoading && subject.summary && (
+            <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: parsedSummary }} />
+          )}
+          {!isLoading && !subject.summary && (
+            <div className="text-center text-slate-500 dark:text-slate-400 py-10">
+              <p>{t('summaryPlaceholder')}</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { Subject, QuizQuestion, QuizType, GenerationAmount, SubjectDifficulty } from '../types';
 import { CheckCircle, XCircle, Loader2, Lightbulb, ListChecks, Circle, CircleDot, Binary, Pilcrow, Wand2, Bookmark, Download, Square, CheckSquare, X } from 'lucide-react';
@@ -355,9 +356,9 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
           {score}%
         </div>
         
-        {isFeedbackLoading && <div className="flex justify-center items-center gap-2 text-slate-500 my-4"><Loader2 className="animate-spin" /><span>{t('generatingButton')}</span></div>}
+        {isFeedbackLoading && <div className="flex justify-center items-center gap-2 text-slate-500 my-4" role="status" aria-live="polite"><Loader2 className="animate-spin" /><span>{t('generatingButton')}</span></div>}
         {feedback && (
-          <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/40 rounded-lg">
+          <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/40 rounded-lg" role="status" aria-live="polite"> {/* Added aria-live */}
              <div className="flex justify-between items-start">
                 <h3 className="font-bold text-lg flex items-center gap-2 mb-2 text-indigo-800 dark:text-indigo-300"><Lightbulb /> {t('quizFeedbackTitle')}</h3>
                 <div className="flex-shrink-0 flex items-center gap-1">
@@ -381,9 +382,9 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
           </div>
         )}
 
-        {isStrategyTipLoading && <div className="flex justify-center items-center gap-2 text-slate-500 my-4"><Loader2 className="animate-spin" /><span>{t('generatingTip')}</span></div>}
+        {isStrategyTipLoading && <div className="flex justify-center items-center gap-2 text-slate-500 my-4" role="status" aria-live="polite"><Loader2 className="animate-spin" /><span>{t('generatingTip')}</span></div>}
         {strategyTip && (
-            <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/40 rounded-lg">
+            <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/40 rounded-lg" role="status" aria-live="polite"> {/* Added aria-live */}
                 <div className="flex justify-between items-start">
                     <h3 className="font-bold text-lg flex items-center gap-2 mb-2 text-purple-800 dark:text-purple-300"><Wand2 /> {t('aiLearningStrategy')}</h3>
                     <div className="flex-shrink-0 flex items-center gap-1">

@@ -1,7 +1,7 @@
 
 import React, { useState, useContext, useMemo, useEffect, useCallback } from 'react';
 import { Subject, Flashcard, GenerationAmount } from '../types';
-import { RotateCw, Volume2, Loader2, Star, Wand2, X } from 'lucide-react';
+import { RotateCw, Volume2, Loader2, Star, Wand2, X, CheckCircle } from 'lucide-react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { generateSpeech, generateFlashcards } from '../services/geminiService';
@@ -131,6 +131,8 @@ const Flashcards: React.FC<FlashcardsProps> = ({ subject }) => {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [showGenerationModal, setShowGenerationModal] = useState(false); // New state for modal
+  const [sessionCompletionMessage, setSessionCompletionMessage] = useState<string | null>(null);
+
 
   useEffect(() => {
     // If no flashcards exist, show the generation modal by default
@@ -143,6 +145,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ subject }) => {
     setIsSessionActive(false);
     setCurrentIndex(0);
     setIsFlipped(false);
+    setSessionCompletionMessage(null); // Clear message on subject/card change
   }, [subject.id, subject.flashcards.length]); // Depend on flashcards.length to react to new generation
 
   const startSession = () => {
@@ -150,6 +153,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ subject }) => {
     setCurrentIndex(0);
     setIsFlipped(false);
     setIsSessionActive(true);
+    setSessionCompletionMessage(null); // Clear any previous completion message
   };
 
   const handleReview = (quality: number) => {
@@ -166,7 +170,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ subject }) => {
     } else {
       dispatch({ type: 'UPDATE_READINESS', payload: { subjectId: subject.id, score: 25 } });
       dispatch({ type: 'LOG_PROGRESS_EVENT', payload: { subjectId: subject.id, event: { type: 'flashcards', cardsReviewed: sessionCards.length } } });
-      alert(t('flashcardSessionComplete'));
+      setSessionCompletionMessage(t('flashcardSessionComplete')); // Set message
       setIsSessionActive(false);
     }
   };
@@ -192,7 +196,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ subject }) => {
       source.start();
     } catch (error) {
       console.error("Failed to play audio:", error);
-      alert(t('errorGenerationFailed'));
+      // Removed alert, consider a more subtle error display if needed
     } finally {
       setIsGeneratingAudio(false);
     }
@@ -274,6 +278,16 @@ const Flashcards: React.FC<FlashcardsProps> = ({ subject }) => {
                 <Wand2 /> {t('regenerateFlashcardsButton')}
             </button>
         </div>
+        {sessionCompletionMessage && (
+            <div 
+                className="mt-6 p-3 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg flex items-center justify-center gap-2 animate-in fade-in duration-300" 
+                role="status" 
+                aria-live="polite"
+            >
+                <CheckCircle size={20} />
+                <span>{sessionCompletionMessage}</span>
+            </div>
+        )}
       </div>
     );
   }

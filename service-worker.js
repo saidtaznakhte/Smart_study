@@ -10,35 +10,18 @@ const offlineFallbackPage = "offline.html";
 const precacheAssets = [
   '/', // The root URL
   'index.html',
-  'index.tsx',
-  'App.tsx',
-  'metadata.json',
-  'manifest.json',
-  'vite.svg',
   'offline.html',
   'translations/en.json',
   'translations/fr.json',
-  // List all .tsx, .ts, .js files that make up your application
-  // Based on the provided file structure, these are imported directly
-  'components/Onboarding.tsx',
-  'components/Dashboard.tsx',
-  'components/SubjectView.tsx',
-  'components/Planner.tsx',
-  'components/Profile.tsx',
-  'components/ImageEditor.tsx',
-  'components/StudyGuide.tsx',
-  'components/Flashcards.tsx',
-  'components/Quiz.tsx',
-  'components/AIChat.tsx',
-  'components/SaveTipModal.tsx',
-  'components/ProgressView.tsx',
-  'components/AddSubjectModal.tsx',
-  'context/AppContext.tsx',
-  'context/LanguageContext.tsx',
-  'services/geminiService.ts',
-  'types.ts',
-  'utils/audioUtils.ts',
-  'utils/downloadUtils.ts',
+  // Include common bundled JavaScript filenames that Vite might generate
+  // Use a more general pattern for bundled JS, assuming files might be in a 'assets' directory.
+  // This will cover most `index.tsx` transformations to `index.js` or `app.[hash].js`
+  '/*.js',
+  '/assets/*.js', 
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/vite.svg',
+  '/manifest.json'
 ];
 
 self.addEventListener("message", (event) => {
@@ -48,20 +31,11 @@ self.addEventListener("message", (event) => {
 });
 
 // The Workbox precaching takes care of the 'install' event and adds assets to cache.
-// No need for a separate manual 'install' listener here for precaching.
-// self.addEventListener('install', async (event) => {
-//   event.waitUntil(
-//     caches.open(CACHE)
-//       .then((cache) => cache.addAll(precacheAssets.concat([offlineFallbackPage])))
-//   );
-// });
+workbox.precaching.precacheAndRoute(precacheAssets.map(url => ({ url, revision: null })));
 
 if (workbox.navigationPreload.isSupported()) {
   workbox.navigationPreload.enable();
 }
-
-// Precache all defined assets
-workbox.precaching.precacheAndRoute(precacheAssets.map(url => ({ url, revision: null })));
 
 // Cache page navigations and other essential resources with network-first strategy
 // This also handles the offline fallback for navigation requests.
@@ -73,21 +47,16 @@ workbox.routing.registerRoute(
       new workbox.expiration.ExpirationPlugin({
         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
       }),
-      new workbox.routing.NavigationRoute.useHandler(
-        new workbox.strategies.NetworkFirst({
-          // Provide an offline fallback for navigation requests.
-          plugins: [
-            new workbox.cacheableResponse.CacheableResponsePlugin({
-              statuses: [0, 200],
-            }),
-          ],
-        }),
-        {
-          // Fallback to the offline page if the network request fails.
-          fallback: offlineFallbackPage,
-        }
-      ),
+      new workbox.cacheableResponse.CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
     ],
+    // Fallback to the offline page if the network request fails.
+    // This is the direct way to handle navigation fallbacks with Workbox.
+    handlerDidError: async () => {
+      const cache = await caches.open(CACHE);
+      return cache.match(offlineFallbackPage) || Response.error();
+    },
   })
 );
 
@@ -173,27 +142,3 @@ workbox.routing.registerRoute(
     ],
   })
 );
-
-// Removed redundant manual 'fetch' listener for navigation,
-// as Workbox's registerRoute for navigation already handles this effectively.
-// self.addEventListener('fetch', (event) => {
-//   if (event.request.mode === 'navigate') {
-//     event.respondWith((async () => {
-//       try {
-//         const preloadResp = await event.preloadResponse;
-
-//         if (preloadResp) {
-//           return preloadResp;
-//         }
-
-//         const networkResp = await fetch(event.request);
-//         return networkResp;
-//       } catch (error) {
-//         console.warn('Fetch failed, serving offline fallback.', error);
-//         const cache = await caches.open(CACHE);
-//         const cachedResp = await cache.match(offlineFallbackPage);
-//         return cachedResp;
-//       }
-//     })());
-//   }
-// });

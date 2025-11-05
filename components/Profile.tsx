@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { StudyIntensity } from '../types';
-import { ArrowLeft, User, School, BookUser, Save, Bell, Trash2, Zap, Brain, Target, BookOpen, TrendingUp } from 'lucide-react';
+import { ArrowLeft, User, School, BookUser, Save, Bell, Trash2, Zap, Brain, Target, BookOpen, TrendingUp, CheckCircle } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const { state, dispatch } = useContext(AppContext);
@@ -17,6 +17,8 @@ const Profile: React.FC = () => {
   });
   const [currentIntensity, setCurrentIntensity] = useState(studyIntensity);
   const [notifications, setNotifications] = useState(notificationsEnabled);
+  const [profileUpdateMessage, setProfileUpdateMessage] = useState<string | null>(null);
+
 
   useEffect(() => {
     setFormData({
@@ -27,6 +29,14 @@ const Profile: React.FC = () => {
     setCurrentIntensity(studyIntensity);
     setNotifications(notificationsEnabled);
   }, [user, studyIntensity, notificationsEnabled]);
+
+  useEffect(() => {
+    // Clear message after a few seconds
+    if (profileUpdateMessage) {
+      const timer = setTimeout(() => setProfileUpdateMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [profileUpdateMessage]);
 
   const handleBackToDashboard = () => dispatch({ type: 'VIEW_DASHBOARD' });
 
@@ -41,7 +51,7 @@ const Profile: React.FC = () => {
         notifications,
       }
     });
-    alert(t('profileUpdated'));
+    setProfileUpdateMessage(t('profileUpdated')); // Set message
   };
 
   const handleClearData = () => {
@@ -182,6 +192,16 @@ const Profile: React.FC = () => {
              <div className="pt-4 flex justify-end">
                 <button type="submit" className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center gap-2"><Save size={16}/>{t('save')}</button>
             </div>
+            {profileUpdateMessage && (
+                <div 
+                    className="mt-4 p-3 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg flex items-center justify-center gap-2 animate-in fade-in duration-300 text-sm" 
+                    role="status" 
+                    aria-live="polite"
+                >
+                    <CheckCircle size={16} />
+                    <span>{profileUpdateMessage}</span>
+                </div>
+            )}
           </form>
 
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-red-500/50 dark:border-red-500/30">

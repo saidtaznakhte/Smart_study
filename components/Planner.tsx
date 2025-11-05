@@ -1,4 +1,5 @@
 
+
 import React, { useState, useContext, useRef, useCallback, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,8 +8,28 @@ import { ScheduleItem, StudyWindow, TimetableAnalysis } from '../types';
 import { Upload, Edit3, Loader2, Wand2, FileUp, X, File as FileIcon, ArrowLeft, PlusCircle, Trash2 } from 'lucide-react';
 
 type InputMode = 'upload' | 'manual';
-// Update weekDays to include all 7 days to match the ScheduleItem and StudyWindow types.
 const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+// Constants for timetable rendering
+const HOURS_START = 8; // 8 AM
+const HOURS_END = 20;  // 8 PM (20:00)
+const TOTAL_HOURS = HOURS_END - HOURS_START;
+const MIN_DISPLAY_HEIGHT_PX = 600; // Minimum pixel height for the timetable grid content
+const PIXELS_PER_MINUTE = MIN_DISPLAY_HEIGHT_PX / (TOTAL_HOURS * 60);
+
+// Helper to convert time string (HH:MM) to minutes from start of day (00:00)
+const timeToMinutes = (time: string): number => {
+    if (!time) return 0;
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+};
+
+// Converts time string to pixel offset from the top of the grid (relative to HOURS_START)
+const timeToPx = (time: string): number => {
+    const minutesFromStart = timeToMinutes(time);
+    const gridStartMinutes = HOURS_START * 60;
+    return (minutesFromStart - gridStartMinutes) * PIXELS_PER_MINUTE;
+};
 
 // --- Schedule Edit Modal Component ---
 interface ScheduleEditModalProps {
@@ -97,8 +118,7 @@ const Planner: React.FC = () => {
     const [inputMode, setInputMode] = useState<InputMode>('upload');
     const [file, setFile] = useState<File | null>(null);
     const [manualSchedule, setManualSchedule] = useState<Omit<ScheduleItem, 'id'>[]>([]);
-    // Fix: Explicitly type newItem to allow all ScheduleItem['day'] types, not just 'Monday' literal.
-    const [newItem, setNewItem] = useState<Omit<ScheduleItem, 'id'>>({ subject: '', day: 'Monday', startTime: '', endTime: '' });
+    const [newManualItem, setNewManualItem] = useState<Omit<ScheduleItem, 'id'>>({ subject: '', day: 'Monday', startTime: '', endTime: '' });
     
     const [isEditing, setIsEditing] = useState(false);
     const [editingItem, setEditingItem] = useState<ScheduleEditModalProps['itemData'] | null>(null);
@@ -236,9 +256,9 @@ const Planner: React.FC = () => {
     // --- Manual Entry Handlers ---
     const handleAddItem = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newItem.subject && newItem.startTime && newItem.endTime) {
-            setManualSchedule([...manualSchedule, newItem]);
-            setNewItem({ subject: '', day: 'Monday' as const, startTime: '', endTime: '' });
+        if (newManualItem.subject && newManualItem.startTime && newManualItem.endTime) {
+            setManualSchedule([...manualSchedule, newManualItem]);
+            setNewManualItem({ subject: '', day: 'Monday' as const, startTime: '', endTime: '' });
         }
     };
     const handleRemoveItem = (index: number) => setManualSchedule(manualSchedule.filter((_, i) => i !== index));
@@ -251,69 +271,100 @@ const Planner: React.FC = () => {
             ...timetableAnalysis.studyWindows.map(sw => ({...sw, isStudy: true as const}))
         ];
     
-        const timeToPercent = (time: string) => {
-            if(!time) return 0;
-            const [hours, minutes] = time.split(':').map(Number);
-            const totalMinutes = hours * 60 + minutes;
-            const startMinutes = 8 * 60; // 8 AM
-            const endMinutes = 20 * 60; // 8 PM
-            return ((totalMinutes - startMinutes) / (endMinutes - startMinutes)) * 100;
-        };
-    
         return (
-            <div className="mt-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                <div className="grid grid-cols-5 gap-1 relative">
-                    {weekDays.map(day => <div key={day} className="text-center font-semibold text-sm pb-2 border-b-2 border-slate-200 dark:border-slate-700">{t(day.toLowerCase())}</div>)}
-                    <div className="col-span-5 h-[600px] relative">
-                        {Array.from({ length: 13 }, (_, i) => i + 8).map(hour => (
-                            <div key={hour} className="absolute w-full flex items-center" style={{ top: `${timeToPercent(`${hour}:00`)}%`}}>
-                                <span className="text-xs text-slate-400 -ml-8 pr-2">{`${hour}:00`}</span>
-                                <div className="flex-grow border-t border-slate-100 dark:border-slate-700/50"></div>
+            <div className="mt-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
+                <div className="grid grid-cols-[60px_repeat(7,1fr)] relative" style={{ height: `${MIN_DISPLAY_HEIGHT_PX}px` }} role="region" aria-live="polite">
+                    {/* Time Axis */}
+                    <div className="col-start-1 row-start-1 sticky left-0 z-10 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 pr-2 pt-8">
+                        {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => HOURS_START + i).map(hour => (
+                            <div 
+                                key={`time-label-${hour}`} 
+                                className="absolute text-xs text-slate-500 text-right w-full" 
+                                style={{ top: `${timeToPx(`${hour}:00`)}px`, transform: 'translateY(-50%)' }}
+                            >
+                                {`${hour}:00`}
                             </div>
                         ))}
-                        {allItems.map((item) => {
-                            const dayIndex = weekDays.indexOf(item.day);
-                            if (dayIndex === -1) return null;
-    
-                            const top = timeToPercent(item.startTime);
-                            const height = timeToPercent(item.endTime) - top;
-                            const handleEditClick = () => {
-                                setEditingItem({ item, type: item.isStudy ? 'studyWindow' : 'schedule' });
-                            }
-
-                            const isStudyWindow = item.isStudy;
-                            const subjectName = 'subject' in item ? item.subject : '';
-                            const colorClasses = isStudyWindow 
-                                ? { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800', darkBg: 'dark:bg-green-900/50', darkText: 'dark:text-green-200' }
-                                : colorPalette[stringToColorIndex(subjectName)];
-    
-                            return (
-                                <div
-                                    key={item.id}
-                                    className="absolute group"
-                                    style={{ top: `${top}%`, height: `${height}%`, left: `${dayIndex * 20}%`, width: '19.5%' }}
-                                >
-                                    <button
-                                        disabled={!isEditing}
-                                        onClick={handleEditClick}
-                                        className={`w-full h-full rounded-lg p-2 text-xs text-left overflow-hidden transition-all border-l-4 ${colorClasses.bg} ${colorClasses.darkBg} ${colorClasses.border} ${isEditing ? 'cursor-pointer hover:ring-2 ring-offset-2 dark:ring-offset-slate-800 ring-indigo-500' : 'cursor-default'}`}
-                                    >
-                                        <p className={`font-bold truncate ${colorClasses.text} ${colorClasses.darkText}`}>{('subject' in item) ? item.subject : t('studyWindows')}</p>
-                                        <p className={`${colorClasses.text} ${colorClasses.darkText}`}>{item.startTime} - {item.endTime}</p>
-                                        {item.isStudy && <p className={`mt-1 italic ${colorClasses.text} ${colorClasses.darkText}`}>"{item.suggestion}"</p>}
-                                    </button>
-
-                                    <div 
-                                        className={`absolute top-1/2 -translate-y-1/2 ${dayIndex > 2 ? 'right-full mr-2' : 'left-full ml-2'} w-48 p-2 text-xs bg-slate-800 dark:bg-slate-900 text-white rounded-md shadow-lg opacity-0 scale-95 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-10`}
-                                    >
-                                        <p className="font-bold border-b border-slate-600 pb-1 mb-1">{('subject' in item) ? item.subject : t('studyWindows')}</p>
-                                        <p>{t(item.day.toLowerCase())}, {item.startTime} - {item.endTime}</p>
-                                        {item.isStudy && <p className="mt-1 italic">"{item.suggestion}"</p>}
-                                    </div>
-                                </div>
-                            );
-                        })}
                     </div>
+
+                    {/* Day Headers */}
+                    {weekDays.map((day, dayIndex) => (
+                        <div key={day} className={`col-start-${dayIndex + 2} text-center font-semibold text-sm pb-2 border-b-2 border-slate-200 dark:border-slate-700`}>
+                            {t(day.toLowerCase())}
+                        </div>
+                    ))}
+
+                    {/* Grid Lines */}
+                    {Array.from({ length: TOTAL_HOURS * 2 + 1 }, (_, i) => i * 30).map(minutes => { // Every 30 minutes
+                        const currentMinutes = HOURS_START * 60 + minutes;
+                        if (currentMinutes > HOURS_END * 60) return null;
+                        
+                        const topPx = (currentMinutes - HOURS_START * 60) * PIXELS_PER_MINUTE;
+                        const isHourMark = minutes % 60 === 0;
+
+                        return (
+                            <div
+                                key={`grid-line-${minutes}`}
+                                className={`absolute col-start-2 col-span-7 w-full ${isHourMark ? 'border-t border-slate-200 dark:border-slate-700' : 'border-t border-slate-100 dark:border-slate-700/50'}`}
+                                style={{ top: `${topPx}px` }}
+                            ></div>
+                        );
+                    })}
+
+                    {/* Events */}
+                    {allItems.map((item) => {
+                        const dayIndex = weekDays.indexOf(item.day);
+                        if (dayIndex === -1) return null;
+    
+                        const top = timeToPx(item.startTime);
+                        const bottom = timeToPx(item.endTime);
+                        const height = bottom - top;
+
+                        // Ensure minimum height for visibility
+                        const actualHeight = Math.max(height, 20); // Minimum 20px height
+                        const adjustTop = height < 20 ? top - (20 - height) / 2 : top; // Center if too small
+
+                        const handleEditClick = () => {
+                            setEditingItem({ item, type: item.isStudy ? 'studyWindow' : 'schedule' });
+                        }
+
+                        const isStudyWindow = item.isStudy;
+                        const subjectName = 'subject' in item ? item.subject : '';
+                        const colorClasses = isStudyWindow 
+                            ? { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800', darkBg: 'dark:bg-green-900/50', darkText: 'dark:text-green-200' }
+                            : colorPalette[stringToColorIndex(subjectName)];
+    
+                        return (
+                            <div
+                                key={item.id}
+                                className="absolute group px-1" // Add padding for visual separation
+                                style={{ 
+                                    top: `${adjustTop}px`, 
+                                    height: `${actualHeight}px`, 
+                                    gridColumn: `${dayIndex + 2}`, // Position within day column
+                                    width: '100%',
+                                }}
+                            >
+                                <button
+                                    disabled={!isEditing}
+                                    onClick={handleEditClick}
+                                    className={`w-full h-full rounded-lg p-2 text-xs text-left overflow-hidden transition-all border-l-4 ${colorClasses.bg} ${colorClasses.darkBg} ${colorClasses.border} ${isEditing ? 'cursor-pointer hover:ring-2 ring-offset-2 dark:ring-offset-slate-800 ring-indigo-500' : 'cursor-default'}`}
+                                >
+                                    <p className={`font-bold truncate ${colorClasses.text} ${colorClasses.darkText}`}>{('subject' in item) ? item.subject : t('studyWindows')}</p>
+                                    <p className={`${colorClasses.text} ${colorClasses.darkText}`}>{item.startTime} - {item.endTime}</p>
+                                    {item.isStudy && <p className={`mt-1 italic ${colorClasses.text} ${colorClasses.darkText}`}>"{item.suggestion}"</p>}
+                                </button>
+
+                                <div 
+                                    className={`absolute top-1/2 -translate-y-1/2 ${dayIndex > 2 ? 'right-full mr-2' : 'left-full ml-2'} w-48 p-2 text-xs bg-slate-800 dark:bg-slate-900 text-white rounded-md shadow-lg opacity-0 scale-95 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-10`}
+                                >
+                                    <p className="font-bold border-b border-slate-600 pb-1 mb-1">{('subject' in item) ? item.subject : t('studyWindows')}</p>
+                                    <p>{t(item.day.toLowerCase())}, {item.startTime} - {item.endTime}</p>
+                                    {item.isStudy && <p className="mt-1 italic">"{item.suggestion}"</p>}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -334,10 +385,10 @@ const Planner: React.FC = () => {
                     ) : (
                         <div>
                             <form onSubmit={handleAddItem} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
-                                <input type="text" placeholder={t('subjectNamePlaceholder')} value={newItem.subject} onChange={e => setNewItem({...newItem, subject: e.target.value})} className="col-span-2 sm:col-span-4 p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
-                                <select value={newItem.day} onChange={e => setNewItem({...newItem, day: e.target.value as ScheduleItem['day']})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"><option disabled value="">{t('dayOfWeek')}</option>{weekDays.map(d => <option key={d} value={d}>{t(d.toLowerCase())}</option>)}</select>
-                                <input type="time" value={newItem.startTime} onChange={e => setNewItem({...newItem, startTime: e.target.value})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
-                                <input type="time" value={newItem.endTime} onChange={e => setNewItem({...newItem, endTime: e.target.value})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                <input type="text" placeholder={t('subjectNamePlaceholder')} value={newManualItem.subject} onChange={e => setNewManualItem({...newManualItem, subject: e.target.value})} className="col-span-2 sm:col-span-4 p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                <select value={newManualItem.day} onChange={e => setNewManualItem({...newManualItem, day: e.target.value as ScheduleItem['day']})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"><option disabled value="">{t('dayOfWeek')}</option>{weekDays.map(d => <option key={d} value={d}>{t(d.toLowerCase())}</option>)}</select>
+                                <input type="time" value={newManualItem.startTime} onChange={e => setNewManualItem({...newManualItem, startTime: e.target.value})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                <input type="time" value={newManualItem.endTime} onChange={e => setNewManualItem({...newManualItem, endTime: e.target.value})} className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
                                 <button type="submit" className="col-span-2 sm:col-span-1 bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-600">{t('add')}</button>
                             </form>
                             <div className="space-y-2 mt-4 max-h-32 overflow-y-auto pr-2">
@@ -386,7 +437,7 @@ const Planner: React.FC = () => {
             
             {!timetableAnalysis && !isLoading && renderInputSection()}
 
-            {isLoading && (<div className="text-center p-10"><Loader2 className="h-12 w-12 text-indigo-500 animate-spin mx-auto"/><p className="mt-4 font-semibold">{t('analyzingButton')}</p><p className="text-slate-500">{t('plannerDescription')}</p></div>)}
+            {isLoading && (<div className="text-center p-10" role="status" aria-live="polite"><Loader2 className="h-12 w-12 text-indigo-500 animate-spin mx-auto"/><p className="mt-4 font-semibold">{t('analyzingButton')}</p><p className="text-slate-500">{t('plannerDescription')}</p></div>)}
             
             {timetableAnalysis && renderTimetableGrid()}
         </div>

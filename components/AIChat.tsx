@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import { Subject, ChatMessage, SubjectFile } from '../types';
 import { getChatResponse } from '../services/geminiService';
 import { useLanguage } from '../context/LanguageContext';
-import { Send, User, Bot, Loader2, Bookmark } from 'lucide-react';
+import { Send, User, Bot, Loader2, Bookmark, CheckCircle } from 'lucide-react';
 import { AppContext } from '../context/AppContext';
 
 interface AIChatProps {
@@ -16,13 +16,21 @@ const AIChat: React.FC<AIChatProps> = ({ subject }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [messages]);
+  useEffect(() => {
+    scrollToBottom();
+    // Clear save message after a few seconds
+    if (saveMessage) {
+      const timer = setTimeout(() => setSaveMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, saveMessage]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +82,7 @@ const AIChat: React.FC<AIChatProps> = ({ subject }) => {
       payload: { subjectId: subject.id, file: newFile }
     });
     
-    alert(`${t('chatSaved')} "${newFile.name}"`);
+    setSaveMessage(`${t('chatSaved')} "${newFile.name}"`); // Set message
   };
 
   return (
@@ -94,7 +102,7 @@ const AIChat: React.FC<AIChatProps> = ({ subject }) => {
             <span className="hidden sm:inline">{t('saveChat')}</span>
         </button>
       </div>
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
+      <div className="flex-1 p-4 overflow-y-auto space-y-4" role="log" aria-live="polite">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400">
             <Bot size={48} />
@@ -134,6 +142,16 @@ const AIChat: React.FC<AIChatProps> = ({ subject }) => {
             <Send size={20} />
           </button>
         </form>
+        {saveMessage && (
+            <div 
+                className="mt-2 p-2 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg flex items-center justify-center gap-2 animate-in fade-in duration-300 text-sm" 
+                role="status" 
+                aria-live="polite"
+            >
+                <CheckCircle size={16} />
+                <span>{saveMessage}</span>
+            </div>
+        )}
       </div>
     </div>
   );

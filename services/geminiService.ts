@@ -17,10 +17,15 @@ const callGeminiWithRetry = async <T>(apiCall: () => Promise<T>, retries = 3, de
     try {
         return await apiCall();
     } catch (error: any) {
+        // Check for common transient errors, including rate limits and 5xx server errors
         const isRateLimitError = error.toString().includes('429') || error.toString().toLowerCase().includes('resource_exhausted');
+        const isServerError = error.code >= 500 && error.code <= 599;
+        const isUnknownRpcError = error.code === 500 && error.message.includes("Rpc failed due to xhr error"); // Targeting the specific error reported
 
-        if (isRateLimitError && retries > 0) {
-            console.warn(`Rate limit exceeded or resource exhausted. Retrying in ${delay / 1000}s... (${retries} retries left)`);
+        const isRetriableError = isRateLimitError || isServerError || isUnknownRpcError;
+
+        if (isRetriableError && retries > 0) {
+            console.warn(`Retriable Gemini API error (${error.code || 'unknown'}): ${error.message}. Retrying in ${delay / 1000}s... (${retries} retries left)`);
             await new Promise(res => setTimeout(res, delay));
             return callGeminiWithRetry(apiCall, retries - 1, delay * 2); // Exponential backoff
         } else {
@@ -185,7 +190,6 @@ ${langInstruction}`;
             return ai.models.generateContent({
                 model,
                 contents: { parts: contentParts },
-                config: { thinkingConfig: { thinkingBudget: 0 } },
             });
         });
 
@@ -231,7 +235,7 @@ export const generateFlashcards = async (
             return ai.models.generateContent({
                 model,
                 contents: { parts: contentParts },
-                config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
+                config: { responseMimeType: 'application/json', responseSchema: schema },
             });
         });
 
@@ -274,7 +278,7 @@ export const generateQuizzes = async (
         };
         
         const prompt = `Based on the provided study material, generate a set of high-quality, accurate, and challenging quizzes. The overall difficulty for all quizzes should be '${difficulty.toLowerCase()}'. ${focusInstruction}
-The set must include three types of quizzes. For each quiz type, generate a number of questions that is reasonable and appropriate for the length and complexity of the material provided, up to a maximum of ${quantities.quizzes} questions per quiz type.
+Per quiz type, generate a number of questions that is reasonable and appropriate for the length and complexity of the material provided, up to a maximum of ${quantities.quizzes} questions per quiz type.
 
 1.  **Multiple-choice quiz:** Generate questions with 4 options each. The number of correct answers MUST vary to effectively test the user's knowledge: include some questions with a single correct answer, some with two, and some with three. Do not make all questions have the same number of correct answers.
 2.  **True/false quiz:** The options must be ["True", "False"], and \`correctAnswer\` must be an array with one element (e.g., ["True"]).
@@ -290,7 +294,7 @@ Your output must be a single JSON object that strictly adheres to the provided s
             return ai.models.generateContent({
                 model,
                 contents: { parts: contentParts },
-                config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
+                config: { responseMimeType: 'application/json', responseSchema: schema },
             });
         });
 
@@ -357,7 +361,6 @@ ${material || "No text material provided. Rely on attached files and general kno
             contents: historyForApi,
             config: {
                 systemInstruction,
-                thinkingConfig: { thinkingBudget: 0 },
             },
         });
     });
@@ -389,7 +392,6 @@ export const generateSpeech = async (text: string): Promise<string> => {
                     prebuiltVoiceConfig: { voiceName: voice },
                     },
                 },
-                thinkingConfig: { thinkingBudget: 0 },
             },
         });
     });
@@ -419,7 +421,6 @@ export const generateQuizFeedback = async (language: 'en' | 'fr', incorrectQuest
             return ai.models.generateContent({ 
                 model, 
                 contents: prompt,
-                config: { thinkingConfig: { thinkingBudget: 0 } },
             });
         });
         return response.text.trim();
@@ -476,7 +477,7 @@ export const analyzeTimetable = async (
     const model = 'gemini-2.5-flash';
     const langInstruction = getLanguageInstruction(language);
     
-    const prompt = `You are an expert student advisor. Analyze the following school timetable. It is provided either as an image/PDF or as text. Extract all scheduled classes, including the subject, day of the week, start time, and end time. Assume a Monday-Friday week unless other days are specified. Identify all free periods between classes and after the last class of the day (until 8 PM). These are potential study windows. Structure the output as a JSON object. ${langInstruction}`;
+    const prompt = `You are an expert student advisor. Analyze the following school timetable. It is provided either as an image/PDF or as text. Extract all scheduled classes, including the subject, day of the week, start time, and end time. Assume a Monday-Friday week unless other days are specified, extending to Saturday and Sunday if classes are indicated. Identify all free periods, at least 30 minutes long, between classes and after the last class of the day (until 8 PM). Prioritize consolidating smaller free periods into larger, more useful study blocks. These are potential study windows. Structure the output as a JSON object. ${langInstruction}`;
 
     const contentParts: any[] = [{ text: prompt }];
 
@@ -498,7 +499,7 @@ export const analyzeTimetable = async (
         return ai.models.generateContent({
             model,
             contents: { parts: contentParts },
-            config: { responseMimeType: 'application/json', responseSchema: timetableAnalysisSchema, thinkingConfig: { thinkingBudget: 0 } },
+            config: { responseMimeType: 'application/json', responseSchema: timetableAnalysisSchema },
         });
     });
 
@@ -585,7 +586,7 @@ Your output must be a single JSON object that strictly adheres to the provided s
             return ai.models.generateContent({
                 model,
                 contents: prompt,
-                config: { responseMimeType: 'application/json', responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } },
+                config: { responseMimeType: 'application/json', responseSchema: schema },
             });
         });
 
@@ -630,7 +631,6 @@ export const generateQuizStrategyTip = async (score: number, language: 'en' | 'f
             return ai.models.generateContent({ 
                 model, 
                 contents: prompt,
-                config: { thinkingConfig: { thinkingBudget: 0 } },
             });
         });
         return response.text.trim();
@@ -670,7 +670,6 @@ export const editImage = async (
             },
             config: {
                 responseModalities: [Modality.IMAGE],
-                thinkingConfig: { thinkingBudget: 0 },
             },
         });
     });

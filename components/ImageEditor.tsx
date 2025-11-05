@@ -1,4 +1,5 @@
 
+
 import React, { useState, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -170,7 +171,7 @@ const ImageEditor: React.FC = () => {
                             </a>
                         )}
                     </div>
-                    <div className="flex-grow flex items-center justify-center bg-slate-100 dark:bg-slate-900/50 rounded-lg overflow-hidden">
+                    <div className="flex-grow flex items-center justify-center bg-slate-100 dark:bg-slate-900/50 rounded-lg overflow-hidden" role="status" aria-live="polite"> {/* Added aria-live */}
                         {isLoading && (
                             <div className="flex flex-col items-center gap-4 text-slate-500">
                                 <Loader2 className="h-10 w-10 animate-spin" />

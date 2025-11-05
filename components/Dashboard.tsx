@@ -1,3 +1,4 @@
+
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -131,18 +132,18 @@ const Dashboard: React.FC = () => {
            <div className="bg-white dark:bg-slate-800/50 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2"><Activity className="text-indigo-500" /> {t('dailyReportTitle')}</h3>
               {isLoadingInsights ? (
-                <div className="flex items-center gap-2 text-slate-500"><Loader2 className="animate-spin h-4 w-4"/><span>{t('generatingButton')}</span></div>
+                <div className="flex items-center gap-2 text-slate-500" role="status" aria-live="polite"><Loader2 className="animate-spin h-4 w-4"/><span>{t('generatingButton')}</span></div>
               ) : (
-                <p className="text-slate-600 dark:text-slate-300 italic">{insights?.dailyReport}</p>
+                <p className="text-slate-600 dark:text-slate-300 italic" role="status" aria-live="polite">{insights?.dailyReport}</p>
               )}
            </div>
            {(isLoadingInsights || (insights?.reminders && insights.reminders.length > 0)) && (
               <div className="bg-white dark:bg-slate-800/50 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-2"><Bell className="text-yellow-500" /> {t('remindersTitle')}</h3>
                 {isLoadingInsights ? (
-                   <div className="flex items-center gap-2 text-slate-500"><Loader2 className="animate-spin h-4 w-4"/><span>{t('generatingButton')}</span></div>
+                   <div className="flex items-center gap-2 text-slate-500" role="status" aria-live="polite"><Loader2 className="animate-spin h-4 w-4"/><span>{t('generatingButton')}</span></div>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="space-y-2" role="status" aria-live="polite">
                     {insights?.reminders.map((r, index) => (
                        <li key={index} className="text-sm text-slate-600 dark:text-slate-300 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
                         {r.text}
@@ -157,9 +158,9 @@ const Dashboard: React.FC = () => {
             <div>
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-2"><Target className="text-indigo-500" /> {t('aiAssistantTip')}</h3>
                 {isLoadingInsights ? (
-                    <div className="flex items-center gap-2 text-slate-500"><Loader2 className="animate-spin h-4 w-4"/><span>{t('generatingTip')}</span></div>
+                    <div className="flex items-center gap-2 text-slate-500" role="status" aria-live="polite"><Loader2 className="animate-spin h-4 w-4"/><span>{t('generatingTip')}</span></div>
                 ) : (
-                    <p className="text-slate-600 dark:text-slate-300 italic">"{insights?.learningTip}"</p>
+                    <p className="text-slate-600 dark:text-slate-300 italic" role="status" aria-live="polite">"{insights?.learningTip}"</p>
                 )}
             </div>
             {!isLoadingInsights && insights?.learningTip && (
