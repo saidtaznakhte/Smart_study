@@ -115,4 +115,13 @@ export const LanguageSwitcher: React.FC = () => {
       {language.toUpperCase()}
     </button>
   );
+};        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+      }}
+    >
+      {language.toUpperCase()}
+    </button>
+  );
 };
