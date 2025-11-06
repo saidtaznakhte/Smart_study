@@ -22,11 +22,19 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [language, setLanguage] = useState<Language>("en");
+  const getInitialLanguage = (): Language => {
+    const stored = localStorage.getItem("appLanguage") as Language | null;
+    if (stored) return stored;
+    const browserLang = navigator.language.startsWith("fr") ? "fr" : "en";
+    return browserLang;
+  };
+
+  const [language, setLanguage] = useState<Language>(getInitialLanguage);
   const [translations, setTranslations] = useState<
     { [key: string]: Record<string, string> } | null
   >(null);
 
+  // Load translations once
   useEffect(() => {
     const loadTranslations = async () => {
       try {
@@ -52,13 +60,18 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({
     loadTranslations();
   }, []);
 
-  const formatFallbackKey = (key: string): string => {
-    // ✅ Turn “noFlashcardsTitle” → “No Flashcards Title”
-    return key
-      .replace(/([A-Z])/g, " $1") // add space before capitals
-      .replace(/^./, (s) => s.toUpperCase()); // capitalize first letter
-  };
+  // Persist language choice
+  useEffect(() => {
+    localStorage.setItem("appLanguage", language);
+  }, [language]);
 
+  // Format missing keys for readability
+  const formatFallbackKey = (key: string): string =>
+    key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (s) => s.toUpperCase());
+
+  // Translation function
   const t = useCallback(
     (key: string, replacements: { [key: string]: string | number } = {}) => {
       if (!translations) return formatFallbackKey(key);
