@@ -15,75 +15,63 @@ interface LanguageContextType {
   t: (key: string, replacements?: { [key: string]: string | number }) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(
-  undefined
-);
+/* --------------------------------------------------------------- */
+/* 1. CONTEXT & PROVIDER                                            */
+/* --------------------------------------------------------------- */
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const getInitialLanguage = (): Language => {
-    const stored = localStorage.getItem("appLanguage") as Language | null;
-    if (stored) return stored;
-    const browserLang = navigator.language.startsWith("fr") ? "fr" : "en";
-    return browserLang;
-  };
-
-  const [language, setLanguage] = useState<Language>(getInitialLanguage);
+export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [language, setLanguage] = useState<Language>("en");
   const [translations, setTranslations] = useState<
     { [key: string]: Record<string, string> } | null
   >(null);
 
-  // Load translations once
+  /* Load JSON files once */
   useEffect(() => {
-    const loadTranslations = async () => {
+    const load = async () => {
       try {
-        const [enResponse, frResponse] = await Promise.all([
+        const [enRes, frRes] = await Promise.all([
           fetch("/translations/en.json"),
           fetch("/translations/fr.json"),
         ]);
 
-        if (!enResponse.ok || !frResponse.ok) {
-          throw new Error("Failed to fetch translation files");
-        }
+        if (!enRes.ok || !frRes.ok) throw new Error("Failed to load translations");
 
-        const [en, fr] = await Promise.all([
-          enResponse.json(),
-          frResponse.json(),
-        ]);
+        const [en, fr] = await Promise.all([enRes.json(), frRes.json()]);
         setTranslations({ en, fr });
-      } catch (error) {
-        console.error("Error loading translations:", error);
+      } catch (e) {
+        console.error(e);
       }
     };
-
-    loadTranslations();
+    load();
   }, []);
 
-  // Persist language choice
-  useEffect(() => {
-    localStorage.setItem("appLanguage", language);
-  }, [language]);
+  /* ----------------------------------------------------------- */
+  /* 2. Fallback formatter – adds spaces only where needed      */
+  /* ----------------------------------------------------------- */
+  const formatFallbackKey = (key: string): string => {
+    return key
+      .replace(/([A-Z])/g, " $1")           // space before every capital
+      .replace(/^./, (s) => s.toUpperCase()) // capitalise first letter
+      .trim();                              // remove possible leading space
+  };
 
-  // Format missing keys for readability
-  const formatFallbackKey = (key: string): string =>
-    key
-      .replace(/([A-Z])/g, " $1")
-      .replace(/^./, (s) => s.toUpperCase());
-
-  // Translation function
   const t = useCallback(
-    (key: string, replacements: { [key: string]: string | number } = {}) => {
+    (
+      key: string,
+      replacements: { [k: string]: string | number } = {}
+    ): string => {
       if (!translations) return formatFallbackKey(key);
 
-      const langTranslations = translations[language] || translations.en || {};
-      let translation = langTranslations[key] || formatFallbackKey(key);
+      const dict = translations[language] ?? translations.en ?? {};
+      let text = dict[key] ?? formatFallbackKey(key);
 
-      Object.keys(replacements).forEach((rKey) => {
-        translation = translation.replace(`{{${rKey}}}`, String(replacements[rKey]));
+      // {{placeholder}} → value
+      Object.entries(replacements).forEach(([k, v]) => {
+        text = text.replace(new RegExp(`{{${k}}}`, "g"), String(v));
       });
 
-      return translation;
+      return text;
     },
     [language, translations]
   );
@@ -95,10 +83,36 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({
   );
 };
 
+/* --------------------------------------------------------------- */
+/* 3. HOOK                                                          */
+/* --------------------------------------------------------------- */
 export const useLanguage = (): LanguageContextType => {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
-  }
-  return context;
+  const ctx = useContext(LanguageContext);
+  if (!ctx) throw new Error("useLanguage must be used inside LanguageProvider");
+  return ctx;
+};
+
+/* --------------------------------------------------------------- */
+/* 4. OPTIONAL QUICK SWITCHER (add wherever you want)              */
+/* --------------------------------------------------------------- */
+export const LanguageSwitcher: React.FC = () => {
+  const { language, setLanguage } = useLanguage();
+
+  const toggle = () => setLanguage(language === "en" ? "fr" : "en");
+
+  return (
+    <button
+      onClick={toggle}
+      style={{
+        padding: "0.4rem 0.8rem",
+        background: language === "en" ? "#4a90e2" : "#9b59b6",
+        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+      }}
+    >
+      {language.toUpperCase()}
+    </button>
+  );
 };
