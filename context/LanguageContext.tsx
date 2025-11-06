@@ -1,3 +1,4 @@
+// LanguageContext.tsx
 import React, {
   createContext,
   useState,
@@ -12,7 +13,7 @@ type Language = "en" | "fr";
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string, replacements?: { [key: string]: string | number }) => string;
+  t: (key: string, replacements?: { [k: string]: string | number }) => string;
 }
 
 /* --------------------------------------------------------------- */
@@ -20,13 +21,15 @@ interface LanguageContextType {
 /* --------------------------------------------------------------- */
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const LanguageProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [language, setLanguage] = useState<Language>("en");
   const [translations, setTranslations] = useState<
-    { [key: string]: Record<string, string> } | null
+    { en: Record<string, string>; fr: Record<string, string> } | null
   >(null);
 
-  /* Load JSON files once */
+  /* Load translation files once */
   useEffect(() => {
     const load = async () => {
       try {
@@ -40,14 +43,14 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         const [en, fr] = await Promise.all([enRes.json(), frRes.json()]);
         setTranslations({ en, fr });
       } catch (e) {
-        console.error(e);
+        console.error("Translation load error:", e);
       }
     };
     load();
   }, []);
 
   /* ----------------------------------------------------------- */
-  /* 2. Fallback formatter – adds spaces only where needed      */
+  /* 2. Fallback – clean camelCase → Title Case                 */
   /* ----------------------------------------------------------- */
   const formatFallbackKey = (key: string): string => {
     return key
@@ -66,7 +69,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       const dict = translations[language] ?? translations.en ?? {};
       let text = dict[key] ?? formatFallbackKey(key);
 
-      // {{placeholder}} → value
+      // Replace {{placeholder}}
       Object.entries(replacements).forEach(([k, v]) => {
         text = text.replace(new RegExp(`{{${k}}}`, "g"), String(v));
       });
@@ -93,20 +96,49 @@ export const useLanguage = (): LanguageContextType => {
 };
 
 /* --------------------------------------------------------------- */
-/* 4. OPTIONAL QUICK SWITCHER (add wherever you want)              */
+/* 4. LANGUAGE TOGGLE – REPLACE YOUR EN/FR PILLS WITH THIS        */
 /* --------------------------------------------------------------- */
-export const LanguageSwitcher: React.FC = () => {
+export const LanguageToggle: React.FC = () => {
   const { language, setLanguage } = useLanguage();
 
-  const toggle = () => setLanguage(language === "en" ? "fr" : "en");
+  const switchTo = (target: Language) => {
+    if (language !== target) setLanguage(target);
+  };
 
   return (
-    <button
-      onClick={toggle}
-      style={{
-        padding: "0.4rem 0.8rem",
-        background: language === "en" ? "#4a90e2" : "#9b59b6",
-        color: "#fff",
+    <div style={{ display: "flex", gap: "0.5rem" }}>
+      <button
+        onClick={() => switchTo("en")}
+        style={{
+          padding: "0.4rem 0.8rem",
+          background: language === "en" ? "#4a90e2" : "transparent",
+          color: language === "en" ? "#fff" : "#aaa",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: language === "en" ? "bold" : "normal",
+        }}
+      >
+        EN
+      </button>
+
+      <button
+        onClick={() => switchTo("fr")}
+        style={{
+          padding: "0.4rem 0.8rem",
+          background: language === "fr" ? "#9b59b6" : "transparent",
+          color: language === "fr" ? "#fff" : "#aaa",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: language === "fr" ? "bold" : "normal",
+        }}
+      >
+        FR
+      </button>
+    </div>
+  );
+};        color: "#fff",
         border: "none",
         borderRadius: "4px",
         cursor: "pointer",
