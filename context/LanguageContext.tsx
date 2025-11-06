@@ -1,4 +1,4 @@
-// LanguageContext.tsx
+// LanguageContext.tx
 import React, {
   createContext,
   useState,
