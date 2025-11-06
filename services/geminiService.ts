@@ -273,8 +273,9 @@ export const generateQuizzes = async (
                 [QuizType.MULTIPLE_CHOICE]: { ...quizSchema, description: `An array of multiple-choice quiz questions.` },
                 [QuizType.TRUE_FALSE]: { ...quizSchema, description: `An array of true/false quiz questions.` },
                 [QuizType.FILL_IN_THE_BLANK]: { ...quizSchema, description: `An array of fill-in-the-blank quiz questions.` },
+                [QuizType.DIRECT_QUESTION]: { ...quizSchema, description: `An array of direct, open-ended questions that require a short text answer.` },
             },
-            required: [QuizType.MULTIPLE_CHOICE, QuizType.TRUE_FALSE, QuizType.FILL_IN_THE_BLANK]
+            required: [QuizType.MULTIPLE_CHOICE, QuizType.TRUE_FALSE, QuizType.FILL_IN_THE_BLANK, QuizType.DIRECT_QUESTION]
         };
         
         const prompt = `Based on the provided study material, generate a set of high-quality, accurate, and challenging quizzes. The overall difficulty for all quizzes should be '${difficulty.toLowerCase()}'. ${focusInstruction}
@@ -283,6 +284,7 @@ Per quiz type, generate a number of questions that is reasonable and appropriate
 1.  **Multiple-choice quiz:** Generate questions with 4 options each. The number of correct answers MUST vary to effectively test the user's knowledge: include some questions with a single correct answer, some with two, and some with three. Do not make all questions have the same number of correct answers.
 2.  **True/false quiz:** The options must be ["True", "False"], and \`correctAnswer\` must be an array with one element (e.g., ["True"]).
 3.  **Fill-in-the-blank quiz:** Use "___" for blanks. The \`options\` array must be empty, and \`correctAnswer\` must be an array with a single string for the blank.
+4.  **Direct Question quiz:** These are open-ended questions that require a short, precise text answer (typically a few words to a sentence). The \`options\` array must be empty, and \`correctAnswer\` must be an array with one or more possible correct short answers.
 
 ${langInstruction}${regenerationInstruction}
 Your output must be a single JSON object that strictly adheres to the provided schema.`;

@@ -14,6 +14,7 @@ export enum QuizType {
   MULTIPLE_CHOICE = 'Multiple Choice',
   TRUE_FALSE = 'True/False',
   FILL_IN_THE_BLANK = 'Fill-in-the-Blank',
+  DIRECT_QUESTION = 'Direct Question',
 }
 
 export enum GenerationAmount {

@@ -2,7 +2,7 @@
 
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { Subject, QuizQuestion, QuizType, GenerationAmount, SubjectDifficulty } from '../types';
-import { CheckCircle, XCircle, Loader2, Lightbulb, ListChecks, Circle, CircleDot, Binary, Pilcrow, Wand2, Bookmark, Download, Square, CheckSquare, X } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Lightbulb, ListChecks, Circle, CircleDot, Binary, Pilcrow, Wand2, Bookmark, Download, Square, CheckSquare, X, HelpCircle } from 'lucide-react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { generateQuizFeedback, generateQuizzes, generateQuizStrategyTip } from '../services/geminiService';
@@ -200,6 +200,17 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
     return sortedA.every((value, index) => value.toLowerCase().trim() === sortedB[index].toLowerCase().trim());
   };
 
+  const isAnswerCorrect = (question: QuizQuestion, selected: string[]): boolean => {
+    // For Direct Question, check if the user's answer is INCLUDED in the list of correct answers.
+    if (activeQuizType === QuizType.DIRECT_QUESTION) {
+        if (!selected || selected.length === 0) return false;
+        // Case-insensitive check
+        const userAnswer = selected[0].toLowerCase().trim();
+        return question.correctAnswer.some(correct => correct.toLowerCase().trim() === userAnswer);
+    }
+    // For other types, use the existing strict array equality check.
+    return areArraysEqualUnordered(selected, question.correctAnswer);
+  };
 
   const handleFinishQuiz = async () => {
     setShowResults(true);
@@ -208,7 +219,7 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
     dispatch({ type: 'LOG_PROGRESS_EVENT', payload: { subjectId: subject.id, event: { type: 'quiz', score } } });
     
     // Generate feedback
-    const incorrectQuestions = activeQuiz?.filter((q, index) => !areArraysEqualUnordered(selectedAnswers[index], q.correctAnswer)) || [];
+    const incorrectQuestions = activeQuiz?.filter((q, index) => !isAnswerCorrect(q, selectedAnswers[index])) || [];
     if (incorrectQuestions.length > 0) {
       setIsFeedbackLoading(true);
       try {
@@ -263,7 +274,7 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
     if (!activeQuiz) return 0;
     let correct = 0;
     activeQuiz.forEach((q, index) => {
-      if (areArraysEqualUnordered(selectedAnswers[index], q.correctAnswer)) {
+      if (isAnswerCorrect(q, selectedAnswers[index])) {
         correct++;
       }
     });
@@ -309,11 +320,12 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
       { type: QuizType.MULTIPLE_CHOICE, icon: ListChecks, label: t('quizTypeMultipleChoice') },
       { type: QuizType.TRUE_FALSE, icon: Binary, label: t('quizTypeTrueFalse') },
       { type: QuizType.FILL_IN_THE_BLANK, icon: Pilcrow, label: t('quizTypeFillInTheBlank') },
+      { type: QuizType.DIRECT_QUESTION, icon: HelpCircle, label: t('quizTypeDirectQuestion') },
     ];
     return (
       <div className="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
         <h2 className="text-2xl font-bold text-center mb-6">{t('quizTime')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quizOptions.map(opt => (
             <button
               key={opt.type}
@@ -410,7 +422,7 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
 
         <div className="space-y-4 mt-6">
           {activeQuiz.map((q, index) => {
-            const isCorrect = areArraysEqualUnordered(selectedAnswers[index], q.correctAnswer);
+            const isCorrect = isAnswerCorrect(q, selectedAnswers[index]);
             const questionText = q.question.includes('___') 
               ? q.question.replace('___', `[${q.correctAnswer.join(', ')}]`)
               : q.question;
@@ -454,7 +466,7 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
       <p className="text-lg mb-6">{currentQuestion.question}</p>
       
       <div className="space-y-3">
-        {activeQuizType === QuizType.FILL_IN_THE_BLANK ? (
+        {activeQuizType === QuizType.FILL_IN_THE_BLANK || activeQuizType === QuizType.DIRECT_QUESTION ? (
             <input
                 type="text"
                 value={selectedAnswer[0] || ''}

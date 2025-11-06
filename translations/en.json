@@ -149,6 +149,7 @@
   "quizTypeMultipleChoice": "Multiple Choice",
   "quizTypeTrueFalse": "True/False",
   "quizTypeFillInTheBlank": "Fill-in-the-Blank",
+  "quizTypeDirectQuestion": "Direct Question",
   "quizFeedbackTitle": "AI Learning Tips",
   "typeYourAnswer": "Type your answer...",
   "dailyReportTitle": "Your Daily Report",
