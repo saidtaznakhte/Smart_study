@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from '@google/genai';
 import { Flashcard, QuizQuestion, ChatMessage, SubjectDifficulty, TimetableAnalysis, QuizType, Subject, ProgressEvent, GenerationAmount, DashboardInsights } from '../types';
 
@@ -127,58 +128,44 @@ export const generateSummary = async (
         const langInstruction = getLanguageInstruction(language);
         const focusInstruction = focus ? `Pay special attention to the following topics or concepts: "${focus}".` : '';
 
-        const prompt = `Analyze the provided study material and generate a comprehensive, well-structured study guide. The output must be meticulously organized to resemble a high-quality educational document, making it easy for a student to understand and learn from.
+        const prompt = `Your task is to transform the provided study material into a perfectly structured and easy-to-read study guide. Your output MUST be in Markdown format. Follow these rules STRICTLY:
 
-**Formatting and Structure Requirements (Strictly Enforced for Visual Readability):**
-The goal is to create a document that is not only informative but also *visually easy to read and scan*. To achieve this, strictly adhere to the following:
+**MANDATORY FORMATTING RULES:**
 
-1.  **Overall Title:**
-    *   Begin with a single, clear, and descriptive main title for the entire study guide.
-    *   Use a Markdown H1 heading (e.g., \`# [Main Title of the Subject]\`).
+1.  **Headings for Topics:**
+    *   Use a main title for the whole guide (\`# Main Title\`).
+    *   Use large headings for major topics or chapters (\`## Topic Title\`). These titles should be prominent.
+    *   Use smaller headings for sub-topics (\`### Sub-Topic\`).
 
-2.  **Logical Sections and Hierarchy:**
-    *   Break down the content into logical, distinct sections using headings to create a clear hierarchy.
-    *   Use Markdown H2 headings for major sections (e.g., \`## Key Concepts\`).
-    *   Use H3 headings for subsections (e.g., \`### Photosynthesis Process\`).
+2.  **Bulleted Lists:**
+    *   For lists of causes, symptoms, features, etc., you MUST use bullet points (\`*\` or \`-\`). This is for clear, itemized information.
 
-3.  **Content Presentation:**
-    *   **Paragraphs:** Write clear and concise paragraphs to explain concepts.
-    *   **Lists:** Use bullet points (\`*\` or \`-\`) for lists of items, facts, or key takeaways. Use numbered lists (\`1.\`, \`2.\`) for sequential steps or processes.
-    *   **Highlights and Emphasis:** Use **bold text** (\`**important term**\`) to highlight essential keywords, definitions, and main ideas so they stand out visually. Do not overuse bolding; apply it strategically to key information.
+3.  **Spacing is CRITICAL:**
+    *   You MUST insert a blank line after every heading.
+    *   You MUST insert a blank line between every paragraph.
+    *   You MUST insert a blank line before and after every list.
+    *   This creates visual separation and makes the guide easy to scan.
 
-4.  **Spacing and Indentation (Crucial for Scannability):**
-    *   **ALWAYS** place a blank line between all distinct Markdown elements. This includes:
-        *   Between a heading and the paragraph that follows it.
-        *   Between paragraphs.
-        *   Between a paragraph and a list.
-        *   Between list items if they are multi-line.
-    *   Ensure lists (bulleted and numbered) are properly indented by Markdown for clear hierarchy.
-    *   This meticulous use of spacing and indentation is critical for creating a clean, professional, and easy-to-read document where main ideas are immediately apparent.
+4.  **Highlighting:**
+    *   Use **bold text** (\`**bold**\`) for important keywords to make them stand out.
 
-**Example Structure:**
+**Example of the REQUIRED structure:**
 
 \`\`\`markdown
-# Title of the Study Guide
+# Medical Pathology
 
-## Section 1: Introduction to the Topic
-A brief overview paragraph explaining what this section covers.
+## Gastro-Duodenal Ulcer (GDU)
 
-A second paragraph providing more context.
+**Definition:**
+A loss of substance from the wall of the stomach or duodenum affecting the mucosa, submucosa, and part of the muscularis.
 
-## Section 2: Core Concepts
-Here is an explanation of the first core concept.
-
-*   **Key Term 1:** Definition of the first term.
-*   **Key Term 2:** Definition of the second term.
-
-### Subsection 2.1: A Deeper Dive
-This subsection explores a specific aspect of the core concept.
-
-1.  First step in the process.
-2.  Second step in the process.
+**Causes:**
+*   **Helicobacter pylori:** A major bacterial cause.
+*   **Aspirin or NSAIDs:** Non-steroidal anti-inflammatory drugs.
+*   **Stress:** Severe post-operative or post-infectious stress.
 \`\`\`
-
 ---
+Now, apply these rules to the provided material.
 ${focusInstruction}
 
 ${langInstruction}`;
