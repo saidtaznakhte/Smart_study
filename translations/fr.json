@@ -43,7 +43,7 @@
   "materialPlaceholder": "Ou collez vos notes de cours, texte, ou tout autre matériel d'étude ici...",
   "generatingButton": "Génération...",
   "errorAddMaterialOrFile": "Veuillez ajouter du matériel d'étude en téléchargeant au moins un fichier ou en collant du texte.",
-  "errorGenerationFailed": "La génération du contenu a échoué. Cela peut être dû à un problème temporaire, une entrée incorrecte ou une clé API invalide. Veuillez réessayer ou vérifier votre entrée.",
+  "errorGenerationFailed": "La génération du contenu a échoué. Cela peut être dû à un problème temporaire, une entrée incorrecte ou une clé API invalide. Veuillez réessayer.",
   "rateLimitError": "Nous rencontrons un trafic élevé en ce moment. Veuillez patienter un instant et réessayer.",
   "aiStudyGuideTitle": "Guide d'étude généré par l'IA",
   "summaryPlaceholder": "Le résumé de votre guide d'étude apparaîtra ici une fois généré.",
@@ -225,5 +225,14 @@
   "timetableStaleMessage": "Votre analyse d'emploi du temps est obsolète. Veuillez réanalyser votre emploi du temps pour le plan du jour.",
   "noEventsToday": "Aucun cours ou créneau d'étude prévu pour aujourd'hui. Profitez de votre temps libre ou ajoutez de nouveaux événements !",
   "noEventsTomorrow": "Aucun cours ou créneau d'étude prévu pour demain. Parfait pour étudier de manière flexible ou se détendre !",
-  "studyBlockTitle": "Temps d'étude"
+  "studyBlockTitle": "Temps d'étude",
+  "tooltipFullName": "Entrez votre nom complet pour personnaliser votre expérience.",
+  "tooltipGradeLevel": "Votre âge ou niveau scolaire actuel aide à adapter la difficulté du contenu.",
+  "tooltipSchoolName": "Fournir le nom de votre école peut aider avec de futures fonctionnalités comme les ressources partagées.",
+  "tooltipSubjectName": "Le nom de la matière que vous étudiez (ex: Algèbre, Chimie).",
+  "tooltipExamDate": "La date de votre examen final pour cette matière. Cela aide à prioriser les plans d'étude.",
+  "tooltipDifficulty": "À quel point trouvez-vous cette matière difficile ? Cela influence la difficulté du contenu généré par l'IA.",
+  "tooltipLightMode": "Idéal pour les apprenants occasionnels ou ceux qui ont peu de temps d'étude. Se concentre sur les concepts clés.",
+  "tooltipModerateMode": "Une approche équilibrée pour un apprentissage constant. Recommandé pour la plupart des étudiants.",
+  "tooltipIntenseMode": "Pour les étudiants très motivés ou ceux qui ont des examens à venir. Maximise la production d'études."
 }

@@ -225,5 +225,14 @@
   "timetableStaleMessage": "Your timetable analysis is outdated. Please re-analyze your schedule for today's plan.",
   "noEventsToday": "No scheduled classes or study windows for today. Enjoy your free time or add new events!",
   "noEventsTomorrow": "No scheduled classes or study windows for tomorrow. Perfect for flexible studying or relaxation!",
-  "studyBlockTitle": "Study Time"
+  "studyBlockTitle": "Study Time",
+  "tooltipFullName": "Enter your full name to personalize your experience.",
+  "tooltipGradeLevel": "Your current age or academic grade level helps tailor content difficulty.",
+  "tooltipSchoolName": "Providing your school name can help with future features like shared resources.",
+  "tooltipSubjectName": "The name of the subject you are studying (e.g., Algebra, Chemistry).",
+  "tooltipExamDate": "The date of your final exam for this subject. This helps prioritize study plans.",
+  "tooltipDifficulty": "How challenging do you find this subject? This influences AI-generated content difficulty.",
+  "tooltipLightMode": "Ideal for casual learners or those with limited study time. Focuses on key concepts.",
+  "tooltipModerateMode": "A balanced approach for consistent learning. Recommended for most students.",
+  "tooltipIntenseMode": "For highly motivated students or those with upcoming exams. Maximizes study output."
 }

@@ -3,6 +3,7 @@ import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { StudyIntensity, SubjectDifficulty } from '../types';
 import { User, BookUser, BarChart3, Zap, X, School, GraduationCap } from 'lucide-react';
+import Tooltip from './Tooltip'; // Import the new Tooltip component
 
 const Onboarding: React.FC = () => {
   const { dispatch } = useContext(AppContext);
@@ -55,19 +56,21 @@ const Onboarding: React.FC = () => {
       case 1:
         return (
           <div className="space-y-6">
-            {/* Removed h2 for onboardingWelcome as it's now at the top of the component */}
             <p className="text-center text-slate-600 dark:text-slate-400">{t('onboardingSubtext')}</p>
-            <div className="relative">
+            <div className="relative flex items-center">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input type="text" placeholder={t('fullNamePlaceholder')} value={fullName} onChange={e => setFullName(e.target.value)} className="w-full pl-10 p-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <Tooltip text={t('tooltipFullName')} />
             </div>
-            <div className="relative">
+            <div className="relative flex items-center">
               <BookUser className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input type="text" placeholder={t('gradeLevelPlaceholder')} value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="w-full pl-10 p-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <Tooltip text={t('tooltipGradeLevel')} />
             </div>
-            <div className="relative">
+            <div className="relative flex items-center">
               <School className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input type="text" placeholder={t('schoolNamePlaceholder')} value={schoolName} onChange={e => setSchoolName(e.target.value)} className="w-full pl-10 p-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <Tooltip text={t('tooltipSchoolName')} />
             </div>
             <button onClick={handleNext} disabled={!isStep1Valid} className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors">{t('next')}</button>
           </div>
@@ -80,22 +83,31 @@ const Onboarding: React.FC = () => {
             
             <div className="space-y-4 p-4 border border-slate-300 dark:border-slate-600 rounded-lg">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input 
-                      type="text" 
-                      placeholder={t('subjectNamePlaceholder')}
-                      value={currentSubject} 
-                      onChange={e => setCurrentSubject(e.target.value)}
-                      className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    />
-                     <input 
-                      type="date" 
-                      value={currentExamDate} 
-                      onChange={e => setCurrentExamDate(e.target.value)}
-                      className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-500 dark:text-slate-400"
-                    />
+                    <div className="relative flex items-center">
+                        <input 
+                        type="text" 
+                        placeholder={t('subjectNamePlaceholder')}
+                        value={currentSubject} 
+                        onChange={e => setCurrentSubject(e.target.value)}
+                        className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                        <Tooltip text={t('tooltipSubjectName')} />
+                    </div>
+                    <div className="relative flex items-center">
+                        <input 
+                        type="date" 
+                        value={currentExamDate} 
+                        onChange={e => setCurrentExamDate(e.target.value)}
+                        className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-500 dark:text-slate-400"
+                        />
+                        <Tooltip text={t('tooltipExamDate')} />
+                    </div>
                 </div>
               <div>
-                 <p className="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400">{t('difficulty')}</p>
+                 <div className="flex items-center mb-2">
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('difficulty')}</p>
+                    <Tooltip text={t('tooltipDifficulty')} />
+                 </div>
                  <div className="flex justify-around gap-2">
                     {Object.values(SubjectDifficulty).map(diff => (
                         <button key={diff} onClick={() => setCurrentDifficulty(diff)} className={`w-full text-sm py-2 rounded-md transition-colors ${currentDifficulty === diff ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'}`}>
@@ -137,17 +149,24 @@ const Onboarding: React.FC = () => {
             <p className="text-center text-slate-600 dark:text-slate-400">{t('intensitySubtext')}</p>
             <div className="space-y-4">
               {Object.values(StudyIntensity).map(mode => (
-                <button key={mode} onClick={() => setIntensity(mode)} className={`w-full p-4 border-2 rounded-lg text-left transition-all ${intensity === mode ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/50' : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400'}`}>
-                  <h3 className="font-bold">
-                    {mode === StudyIntensity.LIGHT && t('lightMode')}
-                    {mode === StudyIntensity.MODERATE && t('moderateMode')}
-                    {mode === StudyIntensity.INTENSE && t('intenseMode')}
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {mode === StudyIntensity.LIGHT && t('lightModeDesc')}
-                    {mode === StudyIntensity.MODERATE && t('moderateModeDesc')}
-                    {mode === StudyIntensity.INTENSE && t('intenseModeDesc')}
-                  </p>
+                <button key={mode} onClick={() => setIntensity(mode)} className={`w-full p-4 border-2 rounded-lg text-left transition-all flex items-center justify-between ${intensity === mode ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/50' : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400'}`}>
+                  <div>
+                    <h3 className="font-bold">
+                      {mode === StudyIntensity.LIGHT && t('lightMode')}
+                      {mode === StudyIntensity.MODERATE && t('moderateMode')}
+                      {mode === StudyIntensity.INTENSE && t('intenseMode')}
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {mode === StudyIntensity.LIGHT && t('lightModeDesc')}
+                      {mode === StudyIntensity.MODERATE && t('moderateModeDesc')}
+                      {mode === StudyIntensity.INTENSE && t('intenseModeDesc')}
+                    </p>
+                  </div>
+                  <Tooltip text={
+                    mode === StudyIntensity.LIGHT ? t('tooltipLightMode') :
+                    mode === StudyIntensity.MODERATE ? t('tooltipModerateMode') :
+                    t('tooltipIntenseMode')
+                  } />
                 </button>
               ))}
             </div>
