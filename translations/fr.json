@@ -238,11 +238,5 @@
   "notificationsEnabled": "Notifications activées ! Vous recevrez des rappels.",
   "notificationsDisabled": "Notifications désactivées.",
   "notificationsDenied": "Autorisation de notification refusée. Veuillez les activer dans les paramètres de votre navigateur pour recevoir des rappels.",
-  "reminderForSubject": "Rappel pour {{subject}}",
-  "signInPrompt": "Connectez-vous pour accéder à votre assistant d'étude personnalisé.",
-  "signInWithGoogle": "Se connecter avec Google",
-  "signingIn": "Connexion en cours...",
-  "signInError": "Échec de la connexion. Veuillez réessayer.",
-  "signOut": "Se déconnecter",
-  "loadingApp": "Chargement de PrepAI..."
+  "reminderForSubject": "Rappel pour {{subject}}"
 }
