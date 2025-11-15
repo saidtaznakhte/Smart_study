@@ -1,4 +1,3 @@
-
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -169,11 +168,11 @@ const Dashboard: React.FC = () => {
                         <Bookmark size={16}/>
                     </button>
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         if (!insights.learningTip) return;
                         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                         const filename = `PrepAI-Learning-Tip-${timestamp}.pdf`;
-                        const contentHtml = marked.parse(insights.learningTip);
+                        const contentHtml = await marked.parse(insights.learningTip);
                         printToPdf(contentHtml, filename);
                       }} 
                       title={t('downloadTip')} 

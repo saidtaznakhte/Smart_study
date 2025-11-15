@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { StudyIntensity, SubjectDifficulty } from '../types';
-import { User, BookUser, BarChart3, Zap, X, School } from 'lucide-react';
+import { User, BookUser, BarChart3, Zap, X, School, GraduationCap } from 'lucide-react';
 
 const Onboarding: React.FC = () => {
   const { dispatch } = useContext(AppContext);
@@ -55,7 +55,7 @@ const Onboarding: React.FC = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-white">{t('onboardingWelcome')}</h2>
+            {/* Removed h2 for onboardingWelcome as it's now at the top of the component */}
             <p className="text-center text-slate-600 dark:text-slate-400">{t('onboardingSubtext')}</p>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -165,8 +165,12 @@ const Onboarding: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <div className="bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
+      <div className="max-w-md w-full bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-8 animate-in fade-in zoom-in duration-500">
+        <div className="flex flex-col items-center mb-8">
+          <GraduationCap className="h-16 w-16 text-indigo-600 dark:text-indigo-400 mb-4" />
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{t('onboardingWelcome')}</h1>
+        </div>
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-4">
             {[1, 2, 3].map(s => (

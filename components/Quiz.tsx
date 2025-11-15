@@ -1,5 +1,3 @@
-
-
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { Subject, QuizQuestion, QuizType, GenerationAmount, SubjectDifficulty } from '../types';
 import { CheckCircle, XCircle, Loader2, Lightbulb, ListChecks, Circle, CircleDot, Binary, Pilcrow, Wand2, Bookmark, Download, Square, CheckSquare, X, HelpCircle } from 'lucide-react';
@@ -376,11 +374,11 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
                 <div className="flex-shrink-0 flex items-center gap-1">
                     <button onClick={() => setTipToSave({ title: `AI-Quiz-Feedback-${subject.name.replace(/\s+/g, '-')}`, content: feedback })} title={t('saveTip')} className="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"><Bookmark size={16}/></button>
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         const subjectName = subject.name.replace(/\s+/g, '-');
                         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                         const filename = `PrepAI-Quiz-Feedback-${subjectName}-${timestamp}.pdf`;
-                        const contentHtml = marked.parse(feedback);
+                        const contentHtml = await marked.parse(feedback);
                         printToPdf(contentHtml, filename);
                       }} 
                       title={t('downloadTip')} 
@@ -402,11 +400,11 @@ const Quiz: React.FC<QuizProps> = ({ subject }) => {
                     <div className="flex-shrink-0 flex items-center gap-1">
                         <button onClick={() => setTipToSave({ title: `AI-Strategy-Tip-${subject.name.replace(/\s+/g, '-')}`, content: strategyTip })} title={t('saveTip')} className="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"><Bookmark size={16}/></button>
                         <button 
-                          onClick={() => {
+                          onClick={async () => {
                             const subjectName = subject.name.replace(/\s+/g, '-');
                             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                             const filename = `PrepAI-Strategy-Tip-${subjectName}-${timestamp}.pdf`;
-                            const contentHtml = marked.parse(strategyTip);
+                            const contentHtml = await marked.parse(strategyTip);
                             printToPdf(contentHtml, filename);
                           }} 
                           title={t('downloadTip')} 
