@@ -1,9 +1,9 @@
-
 import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { StudyIntensity } from '../types';
 import { ArrowLeft, User, School, BookUser, Save, Bell, Trash2, Zap, Brain, Target, BookOpen, TrendingUp, CheckCircle } from 'lucide-react';
+import { requestNotificationPermission } from '../utils/notificationUtils'; // Import the new utility
 
 const Profile: React.FC = () => {
   const { state, dispatch } = useContext(AppContext);
@@ -18,6 +18,7 @@ const Profile: React.FC = () => {
   const [currentIntensity, setCurrentIntensity] = useState(studyIntensity);
   const [notifications, setNotifications] = useState(notificationsEnabled);
   const [profileUpdateMessage, setProfileUpdateMessage] = useState<string | null>(null);
+  const [notificationPermissionMessage, setNotificationPermissionMessage] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -31,12 +32,16 @@ const Profile: React.FC = () => {
   }, [user, studyIntensity, notificationsEnabled]);
 
   useEffect(() => {
-    // Clear message after a few seconds
+    // Clear messages after a few seconds
     if (profileUpdateMessage) {
       const timer = setTimeout(() => setProfileUpdateMessage(null), 3000);
       return () => clearTimeout(timer);
     }
-  }, [profileUpdateMessage]);
+    if (notificationPermissionMessage) {
+        const timer = setTimeout(() => setNotificationPermissionMessage(null), 5000);
+        return () => clearTimeout(timer);
+    }
+  }, [profileUpdateMessage, notificationPermissionMessage]);
 
   const handleBackToDashboard = () => dispatch({ type: 'VIEW_DASHBOARD' });
 
@@ -52,6 +57,22 @@ const Profile: React.FC = () => {
       }
     });
     setProfileUpdateMessage(t('profileUpdated')); // Set message
+  };
+
+  const handleToggleNotifications = async () => {
+    if (!notifications) { // If trying to enable notifications
+      const permission = await requestNotificationPermission();
+      if (permission === 'granted') {
+        setNotifications(true);
+        setNotificationPermissionMessage(t('notificationsEnabled'));
+      } else {
+        setNotifications(false); // Ensure toggle is off if permission denied
+        setNotificationPermissionMessage(t('notificationsDenied'));
+      }
+    } else { // If trying to disable notifications
+      setNotifications(false);
+      setNotificationPermissionMessage(t('notificationsDisabled'));
+    }
   };
 
   const handleClearData = () => {
@@ -183,12 +204,21 @@ const Profile: React.FC = () => {
                 </div>
                 <button
                     type="button"
-                    onClick={() => setNotifications(!notifications)}
+                    onClick={handleToggleNotifications}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifications ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                 >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifications ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
              </div>
+             {notificationPermissionMessage && (
+                <div 
+                    className={`mt-2 p-3 rounded-lg flex items-center justify-center gap-2 animate-in fade-in duration-300 text-sm ${notifications ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'}`} 
+                    role="status" 
+                    aria-live="polite"
+                >
+                    <span>{notificationPermissionMessage}</span>
+                </div>
+            )}
              <div className="pt-4 flex justify-end">
                 <button type="submit" className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center gap-2"><Save size={16}/>{t('save')}</button>
             </div>

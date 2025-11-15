@@ -234,5 +234,9 @@
   "tooltipDifficulty": "How challenging do you find this subject? This influences AI-generated content difficulty.",
   "tooltipLightMode": "Ideal for casual learners or those with limited study time. Focuses on key concepts.",
   "tooltipModerateMode": "A balanced approach for consistent learning. Recommended for most students.",
-  "tooltipIntenseMode": "For highly motivated students or those with upcoming exams. Maximizes study output."
+  "tooltipIntenseMode": "For highly motivated students or those with upcoming exams. Maximizes study output.",
+  "notificationsEnabled": "Notifications enabled! You'll receive reminders.",
+  "notificationsDisabled": "Notifications disabled.",
+  "notificationsDenied": "Notification permission denied. Please enable them in your browser settings to receive reminders.",
+  "reminderForSubject": "Reminder for {{subject}}"
 }

@@ -234,5 +234,9 @@
   "tooltipDifficulty": "À quel point trouvez-vous cette matière difficile ? Cela influence la difficulté du contenu généré par l'IA.",
   "tooltipLightMode": "Idéal pour les apprenants occasionnels ou ceux qui ont peu de temps d'étude. Se concentre sur les concepts clés.",
   "tooltipModerateMode": "Une approche équilibrée pour un apprentissage constant. Recommandé pour la plupart des étudiants.",
-  "tooltipIntenseMode": "Pour les étudiants très motivés ou ceux qui ont des examens à venir. Maximise la production d'études."
+  "tooltipIntenseMode": "Pour les étudiants très motivés ou ceux qui ont des examens à venir. Maximise la production d'études.",
+  "notificationsEnabled": "Notifications activées ! Vous recevrez des rappels.",
+  "notificationsDisabled": "Notifications désactivées.",
+  "notificationsDenied": "Autorisation de notification refusée. Veuillez les activer dans les paramètres de votre navigateur pour recevoir des rappels.",
+  "reminderForSubject": "Rappel pour {{subject}}"
 }

@@ -8,6 +8,7 @@ import SaveTipModal from './SaveTipModal';
 import { printToPdf } from '../utils/downloadUtils';
 import { marked } from 'marked';
 import AddSubjectModal from './AddSubjectModal';
+import { showBrowserNotification } from '../utils/notificationUtils'; // Import the new utility
 
 
 const isSameDay = (d1: Date, d2: Date) => {
@@ -37,6 +38,11 @@ const Dashboard: React.FC = () => {
         // If notifications are disabled, clear reminders from the existing insights
         if (!notificationsEnabled) {
             setInsights(prev => prev ? { ...prev, reminders: [] } : null);
+        } else {
+            // If notifications are enabled and insights are current, show browser notifications
+            dashboardInsights.insights.reminders.forEach(reminder => {
+                showBrowserNotification(t('reminderForSubject', { subject: reminder.subjectName }), reminder.text);
+            });
         }
         return;
     }
@@ -58,6 +64,13 @@ const Dashboard: React.FC = () => {
             setInsights(insightsToDisplay);
             const newDashboardData: DailyDashboardData = { date: today.toISOString(), insights: newInsights };
             dispatch({ type: 'SET_DASHBOARD_INSIGHTS', payload: newDashboardData });
+
+            // Trigger browser notifications for new reminders if enabled
+            if (notificationsEnabled && newInsights.reminders.length > 0) {
+                newInsights.reminders.forEach(reminder => {
+                    showBrowserNotification(t('reminderForSubject', { subject: reminder.subjectName }), reminder.text);
+                });
+            }
         })
         .catch(err => {
             console.error("Failed to generate dashboard insights", err);
@@ -65,7 +78,7 @@ const Dashboard: React.FC = () => {
         })
         .finally(() => setIsLoadingInsights(false));
 
-  }, [subjects, language, dashboardInsights, notificationsEnabled, dispatch]);
+  }, [subjects, language, dashboardInsights, notificationsEnabled, dispatch, t]);
 
   const handleViewSubject = (subjectId: string) => {
     dispatch({ type: 'VIEW_SUBJECT', payload: { subjectId } });
