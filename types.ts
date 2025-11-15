@@ -24,6 +24,7 @@ export enum GenerationAmount {
 }
 
 export interface User {
+  uid: string; // Added for Firebase User ID
   fullName: string;
   gradeLevel: string;
   schoolName: string;
