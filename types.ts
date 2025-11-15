@@ -74,7 +74,6 @@ export interface DashboardInsights {
 export interface DailyDashboardData {
   date: string; // ISO String of the day it was generated for
   insights: DashboardInsights;
-  notificationsSent: boolean; // New field to track if notifications for this day's insights have been sent
 }
 
 export interface Subject {

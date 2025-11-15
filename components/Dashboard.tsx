@@ -31,38 +31,28 @@ const Dashboard: React.FC = () => {
   // Consolidated Dashboard Insights Generation
   useEffect(() => {
     const today = new Date();
-    const lastInsightsData = dashboardInsights;
-    const lastInsightsDate = lastInsightsData ? new Date(lastInsightsData.date) : null;
+    const lastInsightsDate = dashboardInsights ? new Date(dashboardInsights.date) : null;
 
-    // If insights are current and notifications were already sent for today, just display them
-    if (lastInsightsData && isSameDay(today, lastInsightsDate!) && lastInsightsData.notificationsSent) {
-        setInsights(lastInsightsData.insights);
+    if (lastInsightsDate && isSameDay(today, lastInsightsDate)) {
+        setInsights(dashboardInsights.insights);
         // If notifications are disabled, clear reminders from the existing insights
         if (!notificationsEnabled) {
             setInsights(prev => prev ? { ...prev, reminders: [] } : null);
+        } else {
+            // If notifications are enabled and insights are current, show browser notifications
+            dashboardInsights.insights.reminders.forEach(reminder => {
+                showBrowserNotification(t('reminderForSubject', { subject: reminder.subjectName }), reminder.text);
+            });
         }
         return;
     }
     
-    // If insights are current but notifications haven't been sent yet for today, send them
-    if (lastInsightsData && isSameDay(today, lastInsightsDate!) && !lastInsightsData.notificationsSent) {
-        setInsights(lastInsightsData.insights);
-        if (notificationsEnabled && lastInsightsData.insights.reminders.length > 0) {
-            lastInsightsData.insights.reminders.forEach(reminder => {
-                showBrowserNotification(t('reminderForSubject', { subject: reminder.subjectName }), reminder.text);
-            });
-            dispatch({ type: 'MARK_DASHBOARD_NOTIFICATIONS_SENT' });
-        }
-        return;
-    }
-
     // Don't generate if there are no subjects
     if (subjects.length === 0) {
         setInsights(null);
         return;
     }
 
-    // Generate new insights if they are outdated or don't exist
     setIsLoadingInsights(true);
     generateDashboardInsights(subjects, language)
         .then(newInsights => {
@@ -72,7 +62,7 @@ const Dashboard: React.FC = () => {
                 reminders: notificationsEnabled ? newInsights.reminders : [],
             };
             setInsights(insightsToDisplay);
-            const newDashboardData: DailyDashboardData = { date: today.toISOString(), insights: newInsights, notificationsSent: false };
+            const newDashboardData: DailyDashboardData = { date: today.toISOString(), insights: newInsights };
             dispatch({ type: 'SET_DASHBOARD_INSIGHTS', payload: newDashboardData });
 
             // Trigger browser notifications for new reminders if enabled
@@ -80,7 +70,6 @@ const Dashboard: React.FC = () => {
                 newInsights.reminders.forEach(reminder => {
                     showBrowserNotification(t('reminderForSubject', { subject: reminder.subjectName }), reminder.text);
                 });
-                dispatch({ type: 'MARK_DASHBOARD_NOTIFICATIONS_SENT' }); // Mark as sent after showing
             }
         })
         .catch(err => {

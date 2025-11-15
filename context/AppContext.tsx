@@ -32,7 +32,6 @@ type Action =
   | { type: 'UPDATE_TIMETABLE_ANALYSIS', payload: TimetableAnalysis }
   | { type: 'LOG_PROGRESS_EVENT', payload: { subjectId: string, event: Omit<ProgressEvent, 'date'> }}
   | { type: 'SET_DASHBOARD_INSIGHTS', payload: DailyDashboardData }
-  | { type: 'MARK_DASHBOARD_NOTIFICATIONS_SENT' } // New action type
   | { type: 'VIEW_PROFILE' }
   | { type: 'UPDATE_PROFILE'; payload: { user: User; intensity: StudyIntensity; notifications: boolean } }
   | { type: 'RESET_APP' };
@@ -239,14 +238,7 @@ const AppReducer = (state: AppState, action: Action): AppState => {
         ),
       };
     case 'SET_DASHBOARD_INSIGHTS':
-      return { ...state, dashboardInsights: { ...action.payload, notificationsSent: false } }; // Initialize notificationsSent to false
-    case 'MARK_DASHBOARD_NOTIFICATIONS_SENT': // New action handler
-      return {
-        ...state,
-        dashboardInsights: state.dashboardInsights
-          ? { ...state.dashboardInsights, notificationsSent: true }
-          : null,
-      };
+      return { ...state, dashboardInsights: action.payload };
     case 'VIEW_PROFILE':
       return { ...state, view: 'profile', activeSubjectId: null };
     case 'UPDATE_PROFILE':
@@ -285,10 +277,6 @@ const loadState = (): AppState | undefined => {
          ...storedState,
          notificationsEnabled: storedState.notificationsEnabled ?? true,
          timetableGeneratedDate: storedState.timetableGeneratedDate ?? null, // Load new field
-         dashboardInsights: storedState.dashboardInsights ? { // Ensure notificationsSent is loaded or defaults
-            ...storedState.dashboardInsights,
-            notificationsSent: storedState.dashboardInsights.notificationsSent ?? false,
-         } : null,
          view: 'dashboard',
          activeSubjectId: null,
        };
@@ -329,7 +317,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         studyIntensity: state.studyIntensity,
         timetableAnalysis: state.timetableAnalysis,
         timetableGeneratedDate: state.timetableGeneratedDate, // Save new field
-        dashboardInsights: state.dashboardInsights, // Save dashboard insights including notificationsSent
+        dashboardInsights: state.dashboardInsights,
         notificationsEnabled: state.notificationsEnabled,
       };
       
