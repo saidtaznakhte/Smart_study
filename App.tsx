@@ -7,9 +7,9 @@ import SubjectView from './components/SubjectView';
 import Planner from './components/Planner';
 import Profile from './components/Profile';
 import ImageEditor from './components/ImageEditor';
-import AuthScreen from './components/AuthScreen'; // Import AuthScreen
+import AuthScreen from './src/components/AuthScreen'; // Corrected import path
 import { BrainCircuit, User as UserIcon, LogOut } from 'lucide-react'; // Import LogOut icon
-import { signOutUser } from './services/firebaseService'; // Import signOutUser
+import { signOutUser } from './src/services/firebaseService'; // Corrected import path
 
 const LanguageSwitcher: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();

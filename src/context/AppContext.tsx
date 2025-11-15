@@ -1,10 +1,10 @@
 import React, { createContext, useReducer, Dispatch, ReactNode, useEffect, useState } from 'react';
-import { User, Subject, StudyIntensity, SubjectDifficulty, TimetableAnalysis, SubjectFile, Flashcard, QuizQuestion, QuizType, ProgressEvent, DailyDashboardData } from '../types';
+import { User, Subject, StudyIntensity, SubjectDifficulty, TimetableAnalysis, SubjectFile, Flashcard, QuizQuestion, QuizType, ProgressEvent, DailyDashboardData } from '../../types';
 import { auth, db, saveUserData, loadUserData } from '../services/firebaseService';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
-interface AppState {
+export interface AppState {
   view: 'onboarding' | 'dashboard' | 'subject' | 'planner' | 'profile' | 'imageEditor';
   user: User | null;
   subjects: Subject[];
@@ -104,12 +104,12 @@ const AppReducer = (state: AppState, action: Action): AppState => {
       };
     case 'SET_USER_DATA':
       if (action.payload) {
-        // If user data exists, load it. If not, keep initial state for onboarding.
-        const loadedState = {
+        const userExists = !!action.payload.user;
+        const loadedState: AppState = { // Explicitly type loadedState as AppState
           ...state,
           ...action.payload,
-          user: action.payload.user ? { ...action.payload.user, uid: state.user?.uid || '' } : null, // Ensure UID is preserved
-          view: action.payload.user ? 'dashboard' : 'onboarding', // If user data exists, go to dashboard, else onboarding
+          user: userExists ? { ...action.payload.user!, uid: state.user?.uid || '' } : null, // Ensure UID is preserved
+          view: userExists ? 'dashboard' : 'onboarding', // Explicitly set view as literal
           activeSubjectId: null, // Always reset active subject on load
           notificationsEnabled: action.payload.notificationsEnabled ?? true, // Default to true if not set
         };

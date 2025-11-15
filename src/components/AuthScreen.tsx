@@ -1,8 +1,8 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../../context/LanguageContext'; // Corrected import path
 import { signInWithGoogle } from '../services/firebaseService';
-import { Google } from 'lucide-react'; // Assuming you have a Google icon or similar
+import { Chrome } from 'lucide-react';
 import { GraduationCap } from 'lucide-react';
 
 const AuthScreen: React.FC = () => {
@@ -19,7 +19,7 @@ const AuthScreen: React.FC = () => {
       // AppContext will handle dispatching 'SET_USER_DATA' via onAuthStateChanged listener
     } catch (e: any) {
       console.error("Google Sign-In failed:", e);
-      setError(t('signInError')); // Assuming you'll add this translation key
+      setError(t('signInError'));
     } finally {
       setIsLoading(false);
     }
@@ -30,7 +30,7 @@ const AuthScreen: React.FC = () => {
       <div className="max-w-md w-full bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-8 text-center animate-in fade-in zoom-in duration-500">
         <GraduationCap className="h-16 w-16 text-indigo-600 dark:text-indigo-400 mb-4 mx-auto" />
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">{t('onboardingWelcome')}</h1>
-        <p className="text-slate-600 dark:text-slate-400 mb-8">{t('signInPrompt')}</p> {/* Add signInPrompt translation */}
+        <p className="text-slate-600 dark:text-slate-400 mb-8">{t('signInPrompt')}</p>
 
         <button
           onClick={handleGoogleSignIn}
@@ -43,7 +43,7 @@ const AuthScreen: React.FC = () => {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 1116 0A8 8 0 014 12z"></path>
             </svg>
           ) : (
-            <Google size={20} />
+            <Chrome size={20} />
           )}
           {isLoading ? t('signingIn') : t('signInWithGoogle')}
         </button>
